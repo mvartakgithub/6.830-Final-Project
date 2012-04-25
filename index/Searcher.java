@@ -29,9 +29,10 @@ class Searcher {
           Document doc = s.doc(d.doc);
           float score = d.score;
           String title = doc.getFieldable("title").stringValue();
-          System.out.format("%f %s\n", score, title);
+          String pid = doc.getFieldable("proc_id").stringValue();
+          String aid = doc.getFieldable("article_id").stringValue();
+          System.out.format("%f %s (%s, %s)\n", score, title, pid, aid);
         }
-        System.out.println("Query finished");
       }
     }
     catch (Exception e) {
