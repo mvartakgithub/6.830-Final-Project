@@ -19,7 +19,8 @@ class Indexer {
      Return the first article parsed from the current position of the specified
      reader.
    */
-  static Document parseArticle(XMLStreamReader r, NumericField pid) throws XMLStreamException {
+  static Document parseArticle(XMLStreamReader r, NumericField pid) throws
+      XMLStreamException {
     Document result = new Document();
     result.add(pid);
     while (r.hasNext()) {
@@ -42,7 +43,8 @@ class Indexer {
                      setLongValue(Long.parseLong(r.getElementText())));
         }
       }
-      else if (r.getEventType() == XMLEvent.END_ELEMENT && r.getName().toString().equals("article_rec")) {
+      else if (r.getEventType() == XMLEvent.END_ELEMENT &&
+               r.getName().toString().equals("article_rec")) {
         return result;
       }
     }
@@ -53,8 +55,8 @@ class Indexer {
      Return a list of Documents parsed from the specified file using the
      specified factory.
    */
-  static List<Document> parse(File f, XMLInputFactory factory) throws FileNotFoundException, IOException,
-      XMLStreamException {
+  static List<Document> parse(File f, XMLInputFactory factory) throws
+      FileNotFoundException, IOException, XMLStreamException {
     List<Document> result = new LinkedList<Document>();
     if (!f.exists() || !f.canRead() || !f.isFile()) {
       return result;
