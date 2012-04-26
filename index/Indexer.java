@@ -19,7 +19,7 @@ class Indexer {
      Return the first article parsed from the current position of the specified
      reader.
    */
-  static Document parseArticle(XMLStreamReader r, NumericField pid) throws
+  static Document parseArticle(XMLStreamReader r, Field pid) throws
       XMLStreamException {
     Document result = new Document();
     result.add(pid);
@@ -39,8 +39,8 @@ class Indexer {
                                Field.Index.ANALYZED));
         }
         else if (r.getName().toString().equals("article_id")) {
-          result.add(new NumericField("article_id", Field.Store.YES, false).
-                     setLongValue(Long.parseLong(r.getElementText())));
+          result.add(new Field("article_id", r.getElementText(), Field.Store.YES,
+                               Field.Index.NO));
         }
       }
       else if (r.getEventType() == XMLEvent.END_ELEMENT &&
@@ -62,12 +62,13 @@ class Indexer {
       return result;
     }
     XMLStreamReader r = factory.createXMLStreamReader(new FileInputStream(f));
-    NumericField pid = new NumericField("proc_id", Field.Store.YES, false);
+    Field pid = new Field("proc_id", "", Field.Store.YES, Field.Index.NO);
     while (r.hasNext()) {
       r.next();
       if (r.getEventType() == XMLEvent.START_ELEMENT) {
-        if (r.getName().toString().equals("proc_id")) {
-          pid.setLongValue(Long.parseLong(r.getElementText()));
+        if (r.getName().toString().equals("proc_id") ||
+            r.getName().toString().equals("issue_id")) {
+          pid.setValue(r.getElementText());
         }
         else if (r.getName().toString().equals("article_rec")) {
           result.add(parseArticle(r, pid));
