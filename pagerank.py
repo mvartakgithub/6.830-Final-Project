@@ -6,7 +6,7 @@ import psycopg2
 from time import time
 
 default_pr = 1.0
-pr_total=170215.0 *default_pr
+pr_total=223800.0 *default_pr
 
 rounds=0
 
@@ -16,7 +16,7 @@ conn=psycopg2.connect("dbname='' user='' password='' host='localhost' port=5433"
 cur = conn.cursor()
 
 #Get all unique papers
-cur.execute("SELECT * from pagerank_tmp")
+cur.execute("SELECT * from pagerank")
 papers = cur.fetchall()
 
 #In-memory tables
@@ -33,7 +33,7 @@ for paper in papers:
 
 #Building valid citations table. Default pagerank table with default_pr value. Store # of citations for easy of later computation
 for paper in papers:
-	cur.execute("select cited_paper_id, cited_proc_id from citations where citer_proc_id='"+paper[0]+"' and citer_paper_id='"+paper[1]+"' and cited_proc_id is not null and cited_paper_id is not null")
+	cur.execute("select cited_proc_id, cited_paper_id from citations where citer_proc_id='"+paper[0]+"' and citer_paper_id='"+paper[1]+"' and cited_proc_id is not null and cited_paper_id is not null")
 	citations_tmp = cur.fetchall()
 	citations=[]
 	for citation_tmp in citations_tmp:
@@ -67,7 +67,7 @@ while rounds<1000000:
 
 	#Assumes uniform E vector (from paper) to handle sinks.
 	for paper in papers:
-		tmp_dict[(paper[0],paper[1])]+=0.33
+		tmp_dict[(paper[0],paper[1])]+=0.25
 		tmp_sum+=tmp_dict[(paper[0],paper[1])]
 	#Normalizing factor
 	c=pr_total/tmp_sum
@@ -89,9 +89,15 @@ while rounds<1000000:
 
 print "Iterations over, updating pageranks at ", (time()-start)/60
 
+max_pr=0
+for paper in papers:
+	tmp_pr=pagerank_dict[(paper[0],paper[1])][0]
+	if tmp_pr>max_pr:
+		max_pr=tmp_pr
+
 #Update pagerank in postgres database
 for paper in papers:
-	cur.execute("update pagerank_tmp set pr="+str(pagerank_dict[(paper[0],paper[1])][0])+" where citer_proc_id='"+paper[0]+"' and citer_paper_id='"+paper[1]+"'")
+	cur.execute("update pagerank set pr="+str(pagerank_dict[(paper[0],paper[1])][0]/max_pr)+" where citer_proc_id='"+paper[0]+"' and citer_paper_id='"+paper[1]+"'")
 
 #Commit transaction
 conn.commit()
