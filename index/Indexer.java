@@ -19,7 +19,7 @@ class Indexer {
      Return the first article parsed from the current position of the specified
      reader.
    */
-  static Document parseArticle(XMLStreamReader r, NumericField pid) throws
+  static Document parseArticle(XMLStreamReader r, Field pid) throws
       XMLStreamException {
     Document result = new Document();
     result.add(pid);
@@ -39,8 +39,8 @@ class Indexer {
                                Field.Index.ANALYZED));
         }
         else if (r.getName().toString().equals("article_id")) {
-          result.add(new NumericField("article_id", Field.Store.YES, false).
-                     setLongValue(Long.parseLong(r.getElementText())));
+          result.add(new Field("article_id", r.getElementText(), Field.Store.YES,
+                               Field.Index.NO));
         }
       }
       else if (r.getEventType() == XMLEvent.END_ELEMENT &&
@@ -62,12 +62,13 @@ class Indexer {
       return result;
     }
     XMLStreamReader r = factory.createXMLStreamReader(new FileInputStream(f));
-    NumericField pid = new NumericField("proc_id", Field.Store.YES, false);
+    Field pid = new Field("proc_id", "", Field.Store.YES, Field.Index.NO);
     while (r.hasNext()) {
       r.next();
       if (r.getEventType() == XMLEvent.START_ELEMENT) {
-        if (r.getName().toString().equals("proc_id")) {
-          pid.setLongValue(Long.parseLong(r.getElementText()));
+        if (r.getName().toString().equals("proc_id") ||
+            r.getName().toString().equals("issue_id")) {
+          pid.setValue(r.getElementText());
         }
         else if (r.getName().toString().equals("article_rec")) {
           result.add(parseArticle(r, pid));
@@ -108,8 +109,8 @@ class Indexer {
   }
   
   public static void main(String[] args) {
-    if (args.length < 1) {
-      System.err.println("Usage: java Indexer DIR");
+    if (args.length < 2) {
+      System.err.println("Usage: java Indexer IN OUT");
       System.exit(1);
     }
     File in = new File(args[0]);
@@ -117,17 +118,14 @@ class Indexer {
       System.err.println("Cannot index non-directory");
       System.exit(1);
     }
-    Directory out = null;
     try {
-      out = FSDirectory.open(new File("index"));
+      Directory out = FSDirectory.open(new File(args[1]));
       Analyzer a = new StandardAnalyzer(Version.LUCENE_36);
       IndexWriterConfig c = new IndexWriterConfig(Version.LUCENE_36, a);
       // Assume re-indexing for simplicity
       c.setOpenMode(OpenMode.CREATE_OR_APPEND);
       IndexWriter w = new IndexWriter(out, c);
       XMLInputFactory factory = XMLInputFactory.newInstance();
-      // Simplify getting text of tags by including CDATA
-      // factory.setProperty("isCoalescing", true);
       visit(in, w, factory);
       w.close();
     }
