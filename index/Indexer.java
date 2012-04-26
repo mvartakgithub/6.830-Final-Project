@@ -109,8 +109,8 @@ class Indexer {
   }
   
   public static void main(String[] args) {
-    if (args.length < 1) {
-      System.err.println("Usage: java Indexer DIR");
+    if (args.length < 2) {
+      System.err.println("Usage: java Indexer IN OUT");
       System.exit(1);
     }
     File in = new File(args[0]);
@@ -118,17 +118,14 @@ class Indexer {
       System.err.println("Cannot index non-directory");
       System.exit(1);
     }
-    Directory out = null;
     try {
-      out = FSDirectory.open(new File("index"));
+      Directory out = FSDirectory.open(new File(args[1]));
       Analyzer a = new StandardAnalyzer(Version.LUCENE_36);
       IndexWriterConfig c = new IndexWriterConfig(Version.LUCENE_36, a);
       // Assume re-indexing for simplicity
       c.setOpenMode(OpenMode.CREATE_OR_APPEND);
       IndexWriter w = new IndexWriter(out, c);
       XMLInputFactory factory = XMLInputFactory.newInstance();
-      // Simplify getting text of tags by including CDATA
-      // factory.setProperty("isCoalescing", true);
       visit(in, w, factory);
       w.close();
     }
