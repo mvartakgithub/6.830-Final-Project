@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.*;
+import java.util.regex.*;
 import javax.xml.stream.*;
 import javax.xml.stream.events.*;
 
@@ -15,6 +16,21 @@ import org.apache.lucene.util.*;
    Generate a Lucene index for the collection of ACM XML files.
  */
 class Indexer {
+  static final Pattern REFS = Pattern.compile("References:? \\[");
+
+  /**
+     Return a string without the references section of the full text.
+   */
+  static String parseFullText(String fulltext) {
+    Matcher m = REFS.matcher(fulltext);
+    if (m.find()) {
+      return fulltext.substring(0, m.start(0));
+    }
+    else {
+      return fulltext;
+    }
+  }
+  
   /**
      Return the first article parsed from the current position of the specified
      reader.
@@ -35,7 +51,8 @@ class Indexer {
                                Field.Index.ANALYZED));
         }
         else if (r.getName().toString().equals("ft_body")) {
-          result.add(new Field("fulltext", r.getElementText(), Field.Store.NO,
+          String fulltext = parseFullText(r.getElementText());
+          result.add(new Field("fulltext", fulltext, Field.Store.NO,
                                Field.Index.ANALYZED));
         }
         else if (r.getName().toString().equals("article_id")) {
