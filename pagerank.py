@@ -56,6 +56,8 @@ for paper in papers:
 		if tmp_dict.has_key((citation_tmp[0],citation_tmp[1])): 
 			citations.append(citation_tmp)
 	citations_dict[(paper[0],paper[1])]=citations
+
+	#Building undirected graph. Neighbors are all papers this paper cites, and this paper is the neighbor of all neighbors.
 	if undirected_graph_dict.has_key((paper[0],paper[1])):
 		for citation in citations:
 			undirected_graph_dict[(paper[0],paper[1])].append(citation)
@@ -68,7 +70,7 @@ for paper in papers:
 
 print "Done building citation graph and undirected graph at ", (time()-start)/60
 
-
+#Essentially DFS of undirected graph, returns a Set object of all papers in that componeent reached by the DFS search
 def find_comp(paper):
 	rtn_set=Set([paper])
 	queue = [paper]
@@ -81,7 +83,9 @@ def find_comp(paper):
 				rtn_set.add(nhbr)
 	return rtn_set
 
-
+#Componentization algorithm. Pick random node, find complete component it resides in through find_comp(), then remove those papers from the set of all papers (paper_set). 
+#Add this componeent to comp_list.
+#Then repeat until all papers are handled. 
 ctr=0
 while len(paper_set)>0:
 	ctr+=1
@@ -101,6 +105,8 @@ print "Beginning component check"
 
 pr_total = 0.0
 ctr = 0
+#Initialize paper pr by setting it as size_of_component_in/number_of_papers.
+#pr_total tracks sum of all prs
 for i in range(len(comp_list)):
 	tmp_pr = float(len(comp_list[i]))/float(num_papers)
 	for paper in comp_list[i]:
@@ -109,6 +115,8 @@ for i in range(len(comp_list)):
 		pr_total+=tmp_pr
 
 if ctr!=num_papers: print "Mismatch in componentization!", ctr, num_papers
+
+#####UNNECESSARY CHECK CODE....HIHGLY INEFFICIENT################
 #for paper in papers:
 #	found=False
 #	only_one=True
