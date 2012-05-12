@@ -1,7 +1,7 @@
 JAVA=java
 JAVAC=javac
 JFLAGS=-Xlint:deprecation
-CLASSPATH=.:/home/aksarkar/lucene-3.6.0/lucene-core-3.6.0.jar
+CLASSPATH=.:$(HOME)/lucene-3.6.0/lucene-core-3.6.0.jar:$(HOME)/postgresql-9.1-902.jdbc4.jar
 DOCS=/home/mvartak/acmdatafiles/acmdl/
 OUT=$(HOME)/index
 
@@ -10,7 +10,7 @@ OUT=$(HOME)/index
 	$(JAVAC) -classpath $(CLASSPATH) $(JFLAGS) $*.java
 
 $(OUT): Indexer.class
-	$(JAVA) -classpath $(CLASSPATH) Indexer $(DOCS) $(OUT)
+	./index.sh $(CLASSPATH) $(DOCS) $(OUT)
 
 clean:
 	rm -f *.class
