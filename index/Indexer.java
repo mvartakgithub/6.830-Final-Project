@@ -1,4 +1,5 @@
 import java.io.*;
+import java.sql.*;
 import java.util.*;
 import java.util.regex.*;
 import javax.xml.stream.*;
@@ -17,6 +18,41 @@ import org.apache.lucene.util.*;
  */
 class Indexer {
   static final Pattern REFS = Pattern.compile("References:? \\[");
+  static final String QUERY = "select pr from pagerank where citer_proc_id = ? and citer_paper_id = ?";
+
+  /**
+     Return the pagerank for the specified paper
+   */
+  static Field pagerank(Field pid, Field aid, PreparedStatement ps) throws SQLException {
+    ps.setString(1, pid.stringValue());
+    ps.setString(2, aid.stringValue());
+    ResultSet r = ps.executeQuery();
+    if (r.next()) {
+      return new Field("pagerank", r.getString(1), Field.Store.YES, Field.Index.NO);
+    }
+    else {
+      return new Field("pagerank", "0", Field.Store.YES, Field.Index.NO);
+    }
+  }
+
+  /**
+     Return the abstract of the current article.
+   */
+  static String parseAbstract(XMLStreamReader r) throws XMLStreamException {
+    StringBuffer result = new StringBuffer();
+    while (r.hasNext()) {
+      r.next();
+      if (r.getEventType() == XMLEvent.CDATA ||
+          r.getEventType() == XMLEvent.CHARACTERS) {
+        result.append(r.getText().trim());
+      }
+      else if (r.getEventType() == XMLEvent.END_ELEMENT &&
+               r.getName().toString().equals("abstract")) {
+        return result.toString();
+      }
+    }
+    return result.toString();
+  }
 
   /**
      Return a string without the references section of the full text.
@@ -35,8 +71,9 @@ class Indexer {
      Return the first article parsed from the current position of the specified
      reader.
    */
-  static Document parseArticle(XMLStreamReader r, Field pid) throws
-      XMLStreamException {
+  static Document parseArticle(XMLStreamReader r, Field pid,
+                               PreparedStatement ps) throws XMLStreamException,
+      SQLException {
     Document result = new Document();
     result.add(pid);
     while (r.hasNext()) {
@@ -50,13 +87,22 @@ class Indexer {
           result.add(new Field("subtitle", r.getElementText(), Field.Store.YES,
                                Field.Index.ANALYZED));
         }
-        else if (r.getName().toString().equals("ft_body")) {
-          String fulltext = parseFullText(r.getElementText());
-          result.add(new Field("fulltext", fulltext, Field.Store.NO,
+        else if (r.getName().toString().equals("abstract")) {
+          result.add(new Field("abstract", parseAbstract(r), Field.Store.YES,
                                Field.Index.ANALYZED));
+        }
+        else if (r.getName().toString().equals("ft_body")) {
+          result.add(new Field("fulltext", parseFullText(r.getElementText()),
+                               Field.Store.NO, Field.Index.ANALYZED));
         }
         else if (r.getName().toString().equals("article_id")) {
           result.add(new Field("article_id", r.getElementText(), Field.Store.YES,
+                               Field.Index.NO));
+          result.add(pagerank((Field)result.getFieldable("proc_id"),
+                              (Field)result.getFieldable("article_id"), ps));
+        }
+        else if (r.getName().toString().equals("url")) {
+          result.add(new Field("url", r.getElementText(), Field.Store.YES,
                                Field.Index.NO));
         }
       }
@@ -72,8 +118,9 @@ class Indexer {
      Return a list of Documents parsed from the specified file using the
      specified factory.
    */
-  static List<Document> parse(File f, XMLInputFactory factory) throws
-      FileNotFoundException, IOException, XMLStreamException {
+  static List<Document> parse(File f, XMLInputFactory factory,
+                              PreparedStatement ps) throws
+      FileNotFoundException, IOException, XMLStreamException, SQLException {
     List<Document> result = new LinkedList<Document>();
     if (!f.exists() || !f.canRead() || !f.isFile()) {
       return result;
@@ -88,7 +135,7 @@ class Indexer {
           pid.setValue(r.getElementText());
         }
         else if (r.getName().toString().equals("article_rec")) {
-          result.add(parseArticle(r, pid));
+          result.add(parseArticle(r, pid, ps));
         }
       }
       else if (r.getEventType() == XMLEvent.END_ELEMENT) {
@@ -101,20 +148,22 @@ class Indexer {
   }
 
   /**
-     Walk the specified directory, indexing files using the specified indexer
-     and parsing them using the specified factory.
+     Walk the specified directory, indexing files using the specified indexer,
+     parsing them using the specified factory, and getting pageranks using the
+     specified query.
    */
-  static void visit(File d, IndexWriter w, XMLInputFactory factory) {
+  static void visit(File d, IndexWriter w, XMLInputFactory factory,
+                    PreparedStatement ps) {
     if (!d.exists() || !d.canRead() || !d.isDirectory()) {
       throw new IllegalArgumentException();
     }
     for (File f : d.listFiles()) {
       if (f.isDirectory()) {
-        visit(f, w, factory);
+        visit(f, w, factory, ps);
       }
       else {
         try {
-          for (Document doc : parse(f, factory)) {
+          for (Document doc : parse(f, factory, ps)) {
             w.addDocument(doc);
           }
         }
@@ -135,7 +184,16 @@ class Indexer {
       System.err.println("Cannot index non-directory");
       System.exit(1);
     }
+    Scanner s = new Scanner(System.in);
+    String host = s.next().trim();
+    String port = s.next().trim();
+    String db = s.next().trim();
+    String url = String.format("jdbc:postgresql://%s:%s/%s", host, port, db);
+    String user = s.next().trim();
+    String pass = s.next().trim();
     try {
+      Connection conn = DriverManager.getConnection(url, user, pass);
+      PreparedStatement ps = conn.prepareStatement(QUERY);
       Directory out = FSDirectory.open(new File(args[1]));
       Analyzer a = new StandardAnalyzer(Version.LUCENE_36);
       IndexWriterConfig c = new IndexWriterConfig(Version.LUCENE_36, a);
@@ -143,8 +201,9 @@ class Indexer {
       c.setOpenMode(OpenMode.CREATE_OR_APPEND);
       IndexWriter w = new IndexWriter(out, c);
       XMLInputFactory factory = XMLInputFactory.newInstance();
-      visit(in, w, factory);
+      visit(in, w, factory, ps);
       w.close();
+      conn.close();
     }
     catch (Exception e) {
       e.printStackTrace();
