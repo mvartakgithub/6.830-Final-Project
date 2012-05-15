@@ -61,7 +61,17 @@ S(p)= n(\Sigma_{c \in C} \frac{S(c)}{D(c)}+E(p))
 \end{equation}
 where $E$ is a source of score, $n$ is the normalization factor, and all other variables remain as defined.
 
-Components in the citation graph are the other source of complication. Papers in the same component are either both part of the same citation chain or share a common ancestor or descendant in their respective chain. The ACM data exhibits a large number (???? exact number????) of components, with a small number of large components and a large number of components with just a few papers (Figure ???). Small components are papers that don't cite any other papers in the data set and aren't heavily cited. This implies that nodes in small components should not be highly ranked. 
+
+
+\begin{figure}[t]
+\centering
+	\includegraphics[width=5in]{images/component-graph}
+	\caption{Sizes of components in the ACM data set and the number of each size's occurrence.}	
+	\label{comp-size}
+\end{figure}
+
+Components in the citation graph are the other source of complication. Papers in the same component are either both part of the same citation chain or share a common ancestor or descendant in their respective chain. The ACM data exhibits 45,571 total components, with one large component of 176,285 papers, and a large number of smaller components ranging in size from one to ten papers, as displayed in Figure \ref{comp-size}. Small components are papers that don't cite many or any other papers in the data set and aren't heavily cited. This implies that nodes in small components should not be highly ranked. 
+
 To adjust for this, nodes are categorized into the components they belong in. Instead of initializing node scores to be a constant value such as 1, they are instead initialized to a score linear to the size of the component containing the nodes. Intuitively, this means that papers in larger components will receive higher scores, as desired.
 
 A final variation on the basic scoring function is the incorporation of a damping factor $d$. A user following a citation chain will eventually stop, possibly at the end of the chain. Intuitively, the farther down a chain a user traverses, the less likely the papers will relevant and important to the original query, and the more likely the user will stop. The damping factor models this behaviour by reducing the change produced by the scoring function as the number of rounds increases. Adapted from PageRank, this results in the final version of our scoring function:\\
