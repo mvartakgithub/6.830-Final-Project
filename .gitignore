@@ -1,1 +1,4 @@
 *.class
+report/paper.aux
+report/paper.log
+report/paper.pdf

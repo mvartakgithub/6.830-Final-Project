@@ -36,6 +36,72 @@ class Indexer {
   }
 
   /**
+     Return a formatted list of names separated by "and"
+   */
+  static String formatAuthors(List<String> first, List<String> middle,
+                              List<String> last) {
+    StringBuffer result = new StringBuffer();
+    Iterator<String> iter1 = first.iterator();
+    Iterator<String> iter2 = middle.iterator();
+    Iterator<String> iter3 = last.iterator();
+    while (iter1.hasNext() && iter2.hasNext() && iter3.hasNext()) {
+      String s1 = iter1.next().trim();
+      String s2 = iter2.next().trim();
+      String s3 = iter3.next().trim();
+      if (!s1.isEmpty()) {
+        result.append(s1);
+        if (!s2.isEmpty()) {
+          result.append(" ");
+        }
+        if (s2.isEmpty() && !s3.isEmpty()) {
+          result.append(" ");
+        }
+      }
+      if (!s2.isEmpty()) {
+        result.append(s2);
+        if (!s3.isEmpty()) {
+          result.append(" ");
+        }
+      }
+      if (!s3.isEmpty()) {
+        result.append(s3);
+      }
+      if (iter1.hasNext() && iter2.hasNext() && iter3.hasNext()) {
+        result.append(" and ");
+      }
+    }
+    return result.toString();
+  }
+
+  /**
+     Return the authors of the current article, separated by "and".
+   */
+  static String parseAuthors(XMLStreamReader r) throws XMLStreamException {
+    List<String> first = new LinkedList<String>();
+    List<String> middle = new LinkedList<String>();
+    List<String> last = new LinkedList<String>();
+    while (r.hasNext()) {
+      r.next();
+      if (r.getEventType() == XMLEvent.START_ELEMENT) {
+        if (r.getName().toString().equals("first_name")) {
+          first.add(r.getElementText());
+        }
+        else if (r.getName().toString().equals("middle_name")) {
+          middle.add(r.getElementText());
+        }
+        else if (r.getName().toString().equals("last_name")) {
+          last.add(r.getElementText());
+        }
+      }
+      else if (r.getEventType() == XMLEvent.END_ELEMENT &&
+               r.getName().toString().equals("authors")) {
+        return formatAuthors(first, middle, last);
+      }
+    }
+    return formatAuthors(first, middle, last);
+  }
+
+  /**
      Return the abstract of the current article.
    */
   static String parseAbstract(XMLStreamReader r) throws XMLStreamException {
@@ -103,6 +169,10 @@ class Indexer {
         }
         else if (r.getName().toString().equals("url")) {
           result.add(new Field("url", r.getElementText(), Field.Store.YES,
+                               Field.Index.NO));
+        }
+        else if (r.getName().toString().equals("authors")) {
+          result.add(new Field("authors", parseAuthors(r), Field.Store.YES,
                                Field.Index.NO));
         }
       }
