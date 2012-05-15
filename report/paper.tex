@@ -1,14 +1,13 @@
 \documentclass[12pt]{article}
-\usepackage[letterpaper,margin=1in]{geometry}
-\usepackage{graphicx}
-
 \setcounter{secnumdepth}{2} 
 
 \title{PubCrawl: A Paper Search Engine}
-\author{Frank Li (frankli@mit.edu)\\
+\author{Frank Li (frankli@mit.edu) \\
 Abhishek Sarkar (aksarkar@mit.edu)\\
 Manasi Vartak (mvartak@mit.edu)}
 \date{May 16, 2012}
+
+\usepackage{graphicx}
 
 \begin{document}
 \maketitle
@@ -16,52 +15,27 @@ Manasi Vartak (mvartak@mit.edu)}
 
 \section{Introduction}
 
-A primary source of information for computer science researchers are published
-papers from conference proceedings and journals. However, there are simply too
-many papers in published in too many venues to keep track of. While experienced
-researchers are typically versed in the famous and influential papers of their
-respective fields, they may be less familiar with other areas that might still
-be needed for their work. Less experienced researchers and students may have
-even less or no knowledge of the relevant papers of a subject.
+	A primary source of information for computer science researchers are published papers from conference proceedings and journals. However, there are simply too many papers in published in too many venues to keep track of. While experienced researchers are typically versed in the famous and influential papers of their respective fields, they may be less familiar with other areas that might still be needed for their work. Less experienced researchers and students may have even less or no knowledge of the relevant papers of a subject.
 
-To address this issue, we designed PubCrawl, a paper search engine. Using this
-system allows researchers to query for the most important and relevant papers
-in a field, particularly one they are not familiar with. PubCrawl uses Apache
-Lucene for text indexing to measure a paper’s relevance to a query, and an
-adaptation of PageRank on the papers citation graph for weighting a paper’s
-importance. Currently all papers in the Association of Computing Machinery
-(ACM) Digital Library database have been processed. A simple web user interface
-is provided, where users can input queries and weights for what attributes they
-feel is most important, to tune the result rankings to fit what they feel is
-most appropriate. The top papers are returned, with hyperlinks to the papers’
-ACM homepage.
+	To address this issue, researchers have create paper search engines, such as Google Scholar and CiteseerX. However, the ranking process for these systems is largely privately maintained. In this paper, we investigate the process of ranking in the academic papers setting. An understanding of this is important to create a better search system.
 	
-In this report, we detail the design of PubCrawl and investigate the effects of
-many of its features. We conduct a user study to compare the performance of our
-ranking system versus other current systems.
+	To do this, we designed PubCrawl, a paper search engine, as a testing bed for ranking mechanisms. In building PubCrawl, we used Apache Lucene for text indexing to measure a paper’s relevance to a query, and an adaptation of PageRank on the papers citation graph for weighting a paper’s importance. Currently all papers in the Association of Computing Machinery (ACM) Digital Library database have been processed. A simple web user interface is provided, where users can input queries and weights for what attributes they feel is most important, to tune the result rankings to fit what they feel is most appropriate. The top papers are returned, with hyperlinks to the papers’ ACM homepage.
+	
+	In this report, we detail the design of PubCrawl and investigate the effects of many of its features. We conduct a user study to compare the performance of our ranking system versus other current systems. 
 
 \section{Related Work}
 
-There are a few paper search engines currently in existence: CiteseerX, Google
-Scholar, and Microsoft Academic Search.
+There are a few paper search engines currently in existence, such as CiteseerX and Google Scholar. Their ranking process is largely maintained privately, but several characteristics of both are described in this section.
 
-CiteseerX's data set is scraped from the web by a crawler, and processed in an
-automated fashion. This has provided CiteseerX with wide and largely hands-off
-coverage of papers. However, due to the purely automated approach used and the
-heterogeneity in data representation on the web, the data collected contains
-errors and missing information. For example, the crawler has mistaken the wrong
-string for the title of a number of papers.
+CiteseerX's data set is scraped from the web by a crawler, and processed in an automated fashion. This has provided CiteseerX with wide and largely hands-off coverage of papers. However, due to the purely automated approach used and the heterogeneity in data representation on the web, the data collected contains errors and missing information. For example, the crawler has mistaken the wrong string for the title of a number of papers. This leads to some errors in the processing of both the paper data and queries.
+
+Google Scholar also operates with a crawler, and exhibits some of the same dirty data issues as CiteseerX. Additionally, Google Scholar has been shown to be heavily influenced by citation count, which may be inappropriate for some user queries.
+
+
 
 \section{PubCrawl Design}
 
-PubCrawl is designed to rank papers based on relevance and importance. To
-measure relevance, we use Apache Lucene, a high-performance text search engine
-library for Java. Lucene is used to provide text indexing, returning the papers
-most textually relevant to a query. To measure importance, we use a variation
-of the classic PageRank algorithm on the citation graph of papers. The
-weighting between the text indexing and PageRank score is an input the users
-can provide, as discussed in \ref{sec:implementation}. Currently, the ACM
-dataset has been gathered and applied using PubCrawl.
+PubCrawl is designed to rank papers based on relevance and importance. To measure relevance, we use Apache Lucene, a high-performance text search engine library for Java. Lucene is used to provide text indexing, returning the papers most textually relevant to a query. To measure importance, we use a variation of the classic PageRank algorithm on the citation graph of papers. The weighting between the text indexing and PageRank score is an input the users can provide, as discussed in \ref{sec:implementation}. Currently, the ACM dataset has been gathered and applied using PubCrawl. Through the design of the system, we discuss the effect of a number of its features.
 
 \subsection{Lucene Text Indexing}
 %Abhishek
@@ -69,104 +43,48 @@ dataset has been gathered and applied using PubCrawl.
 \subsection{Adapted PageRank}
 \label{sec:pagerank}
 
-The relationship between academic papers draws a strong analogy with that
-between web pages. Just as pages on the web embed links to other pages, papers
-cite other papers. This forms a directed graph of paper nodes and citation
-edges, where an edge from one paper $A$ to another paper $B$ indicates that $A$
-cited $B$.
+The relationship between academic papers draws a strong analogy with that between web pages. Just as pages on the web embed links to other pages, papers cite other papers. This forms a directed graph of paper nodes and citation edges, where an edge from one paper $A$ to another paper $B$ indicates that $A$ cited $B$.
 
-To exploit the similarity between the two environments, we use a variation of
-the PageRank algorithm. PageRank is an algorithm used by the Google search
-engine that provides a weighted score for web pages based on the number of
-external pages that cite a particular web page, and the PageRank of those
-external pages. We use a similar framework for academic papers, where a paper's
-score is based on the number of other papers citing it, and the score of those
-papers. The most simple form of this captured by the following equation:\\
+To exploit the similarity between the two environments, we use a variation of the PageRank algorithm. PageRank is an algorithm used by the Google search engine that provides a weighted score for web pages based on the number of external pages that cite a particular web page, and the PageRank of those external pages. We use a similar framework for academic papers, where a paper's score is based on the number of other papers citing it, and the score of those papers. The most simple form of this captured by the following equation:\\
 \begin{equation}
 \label{eqn:basic}
 S(p)= \Sigma_{c \in C} \frac{S(c)}{D(c)}
 \end{equation}
-where $p$ is the paper being scored, $C$ is the set of all papers that cite
-$p$, $S$ is the scoring function, and $D$ is the degree function (indicating
-the number of papers a certain paper cites).
+where $p$ is the paper being scored, $C$ is the set of all papers that cite $p$, $S$ is the scoring function, and $D$ is the degree function (indicating the number of papers a certain paper cites).
 
-The score of all nodes can be calculated in an iterative manner. All nodes can
-be initialized to a default score, such as 1. Then, in each round, Equation
-\ref{eqn:basic} can be applied to all nodes. This process is repeated until
-node scores converge. However, this scoring function is further complicated by
-a couple of features of academic paper relations: cycles and components.
+The score of all nodes can be calculated in an iterative manner. All nodes can be initialized to a default score, such as 1. Then, in each round, Equation \ref{eqn:basic} can be applied to all nodes. This process is repeated until node scores converge. However, this scoring function is further complicated by a couple of features of academic paper relations: cycles and components. 
 
-Citation cycles provide one source of complication. In citation cycles, a
-paper's chain of citations returns to the paper itself. A number of these
-cycles exist in the data set. In general, these cycles act as a score sink,
-shifting the score of external nodes into the cycle round after round. Inside
-the cycle, the score rotates among nodes, preventing convergence. To reduce the
-impact of these cycles, a score source is provided for node each round, as also
-done in PageRank. To provide convergence, the total sum of all node scores must
-remain constant, so node scores must be normalized per round. This results in
-an updated scoring function of:\\
+Citation cycles provide one source of complication. In citation cycles, a paper's chain of citations returns to the paper itself. A number of these cycles exist in the data set. In general, these cycles act as a score sink, shifting the score of external nodes into the cycle round after round. Inside the cycle, the score rotates among nodes, preventing convergence. To reduce the impact of these cycles, a score source is provided for node each round, as also done in PageRank. To provide convergence, the total sum of all node scores must remain constant, so node scores must be normalized per round. This results in an updated scoring function of:\\
 \begin{equation}
 \label{eqn:cycle}
 S(p)= n(\Sigma_{c \in C} \frac{S(c)}{D(c)}+E(p))
 \end{equation}
-where $E$ is a source of score, $n$ is the normalization factor, and all other
-variables remain as defined.
+where $E$ is a source of score, $n$ is the normalization factor, and all other variables remain as defined.
 
-Components in the citation graph are the other source of complication. Papers
-in the same component are either both part of the same citation chain or share
-a common ancestor or descendant in their respective chain. The ACM data
-exhibits a large number (???? exact number????) of components, with a small
-number of large components and a large number of components with just a few
-papers (Figure ???). Small components are papers that don't cite any other
-papers in the data set and aren't heavily cited. This implies that nodes in
-small components should not be highly ranked. To adjust for this, nodes are
-categorized into the components they belong in. Instead of initializing node
-scores to be a constant value such as 1, they are instead initialized to a
-score linear to the size of the component containing the nodes. Intuitively,
-this means that papers in larger components will receive higher scores, as
-desired.
+Components in the citation graph are the other source of complication. Papers in the same component are either both part of the same citation chain or share a common ancestor or descendant in their respective chain. The ACM data exhibits a large number (???? exact number????) of components, with a small number of large components and a large number of components with just a few papers (Figure ???). Small components are papers that don't cite any other papers in the data set and aren't heavily cited. This implies that nodes in small components should not be highly ranked. 
+To adjust for this, nodes are categorized into the components they belong in. Instead of initializing node scores to be a constant value such as 1, they are instead initialized to a score linear to the size of the component containing the nodes. Intuitively, this means that papers in larger components will receive higher scores, as desired.
 
-A final variation on the basic scoring function is the incorporation of a
-damping factor $d$. A user following a citation chain will eventually stop,
-possibly at the end of the chain. Intuitively, the farther down a chain a user
-traverses, the less likely the papers will relevant and important to the
-original query, and the more likely the user will stop. The damping factor
-models this behaviour by reducing the change produced by the scoring function
-as the number of rounds increases. Adapted from PageRank, this results in the
-final version of our scoring function:\\
-
+A final variation on the basic scoring function is the incorporation of a damping factor $d$. A user following a citation chain will eventually stop, possibly at the end of the chain. Intuitively, the farther down a chain a user traverses, the less likely the papers will relevant and important to the original query, and the more likely the user will stop. The damping factor models this behaviour by reducing the change produced by the scoring function as the number of rounds increases. Adapted from PageRank, this results in the final version of our scoring function:\\
 \begin{equation}
 \label{eqn:damping}
 S(p)= n(\frac{1-d}{N}+d(\Sigma_{c \in C} \frac{S(c)}{D(c)}+E(p)))
 \end{equation}
-
-where $d$ is the damping factor, $N$ is the total number of papers/nodes in the
-network, and all other variables remain as defined.
+where $d$ is the damping factor, $N$ is the total number of papers/nodes in the network, and all other variables remain as defined.
 
 \section{Implementation}
 \label{sec:implementation}
 
+MANASI'S WEBSITE STUFF//
 %Manasi's website stuff
 
-For PubCrawl's implementation of the adapted PageRank scoring function, we used
-several parameters for variables defined in Section \ref{sec:pagerank}:\\
+For PubCrawl's implementation of the adapted PageRank scoring function, we used several parameters for variables defined in Section \ref{sec:pagerank}:\\
 
 \begin{itemize}
-\item For the score source $E$, we use a uniform value. We minimize the value
-  of $E$ that still results in convergence, to reduce the total amount of
-  freely created score.
+\item For the score source $E$, we use a uniform value. We minimize the value of $E$ that still results in convergence, to reduce the total amount of freely created score. In our system, we found $E=0.1$ to be appropriate.
 
-\item For initializing node scores, we use a linear relationship with the size
-  of the component containing the node. If the total number of papers (and
-  nodes) is $N$ and paper $p$ is in a component with $X$ nodes, then the
-  initial score for $p$ is set to $\frac{X}{N}$. Thus, larger components start
-  with initially higher scores, and typically converge with higher final
-  scores.
+\item For initializing node scores, we use a linear relationship with the size of the component containing the node. If the total number of papers (and nodes) is $N$ and paper $p$ is in a component with $X$ nodes, then the initial score for $p$ is set to $\frac{X}{N}$. Thus, larger components start with initially higher scores, and typically converge with higher final scores.
 
-\item For the damping factor of our final scoring function (Equation
-  \ref{eqn:damping}), we use $d=0.85$. This is a reflection of the PageRank
-  study indicating this value as reasonable, rather than a precisely chosen
-  one.
+\item For the damping factor of our final scoring function (Equation \ref{eqn:damping}), we use $d=0.85$. This is a reflection of the PageRank study indicating this value as reasonable, rather than a precisely chosen one.
 
 \end{itemize} 
 
@@ -176,7 +94,7 @@ several parameters for variables defined in Section \ref{sec:pagerank}:\\
 
 \section{Conclusion}
 
-\section{Acknowledgments}
+\section{Acknowledgements}
 \null
 
 \end{document}
