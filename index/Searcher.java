@@ -28,18 +28,16 @@ class Searcher {
       boosts.put("fulltext", Float.parseFloat(args[3]));
       QueryParser p = new MultiFieldQueryParser(Version.LUCENE_36, fields, a,
                                                 boosts);
-      ValueSourceQuery pagerank = new FieldScoreQuery("pagerank", FieldScoreQuery.Type.FLOAT);
       Scanner in = new Scanner(System.in);
       while (in.hasNextLine()) {
         Query q = p.parse(in.nextLine().trim());
-        TopDocs hits = s.search(q, 10);
+        TopDocs hits = s.search(q, 30);
         for (ScoreDoc d : hits.scoreDocs) {
           Document doc = s.doc(d.doc);
           float score = d.score;
           String title = doc.getFieldable("title").stringValue();
-          String pid = doc.getFieldable("proc_id").stringValue();
-          String aid = doc.getFieldable("article_id").stringValue();
-          System.out.format("%f %s (%s, %s)\n", score, title, pid, aid);
+          String pagerank = doc.getFieldable("pagerank").stringValue();
+          System.out.format("%d %f %s %s\n", d.doc, score, pagerank, title);
         }
       }
     }
