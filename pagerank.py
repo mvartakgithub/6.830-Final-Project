@@ -9,7 +9,6 @@ from sets import Set
 
 rounds=0
 
-
 # Try to connect
 conn=psycopg2.connect("dbname='' user='' password='' host='localhost' port=5433")
 cur = conn.cursor()
@@ -101,7 +100,19 @@ print "Citations componentized at ", (time()-start)/60
 
 print "Beginning component check"
 			
-#Check
+size_dict = {}
+
+#determine sizes of components
+for comp in comp_list:
+	tmp_size = len(comp)
+	if tmp_size in size_dict:
+		size_dict[tmp_size]+=1
+	else:
+		size_dict[tmp_size]=1
+
+#print out sizes of components
+for k in size_dict:
+	print k, size_dict[k]
 
 pr_total = 0.0
 ctr = 0
