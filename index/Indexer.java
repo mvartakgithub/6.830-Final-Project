@@ -23,16 +23,18 @@ class Indexer {
   /**
      Return the pagerank for the specified paper
    */
-  static Field pagerank(Field pid, Field aid, PreparedStatement ps) throws SQLException {
+  static NumericField pagerank(Field pid, Field aid, PreparedStatement ps) throws SQLException {
+    NumericField result = new NumericField("pagerank", 12, Field.Store.YES, true);
     ps.setString(1, pid.stringValue());
     ps.setString(2, aid.stringValue());
     ResultSet r = ps.executeQuery();
     if (r.next()) {
-      return new Field("pagerank", r.getString(1), Field.Store.YES, Field.Index.NO);
+      result.setFloatValue(r.getFloat(1));
     }
     else {
-      return new Field("pagerank", "0", Field.Store.YES, Field.Index.NO);
+      result.setFloatValue(0);
     }
+    return result;
   }
 
   /**
