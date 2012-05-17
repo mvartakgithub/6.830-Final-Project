@@ -29,53 +29,40 @@ PageRank over the dataset. We evaluate the system in user studies.
 \section{Introduction}
 
 A primary source of information for computer science researchers are published
-papers from conference proceedings and journals. However, there are simply too
-many papers in published in too many venues to keep track of. While experienced
-researchers are typically versed in the famous and influential papers of their
-respective fields, they may be less familiar with other areas that might still
-be needed for their work. Less experienced researchers and students may have
-even less or no knowledge of the relevant papers of a subject.
+papers from conference proceedings and journals. As the number of papers and
+venues increases, the ability to quickly find papers relevant to a given topic
+becomes more important. In particular, researchers want search engines which
+return important papers.
 
-To address this issue, researchers have create paper search engines, such as
-Google Scholar and CiteseerX. However, the ranking process for these systems is
-largely privately maintained. In this paper, we investigate the process of
-ranking in the academic papers setting. An understanding of this is important
-to create a better search system.
+There are several existing search engines for academic papers, most prominently
+Google Scholar, \citeseer, and Microsoft Academic Search. Google Scholar uses a
+proprietary algorithm which combines several approaches. However, researchers
+have partially reverse engineered it \cite{beel09a, beel09b}. In particular,
+the algorithm is biased towards highly cited papers, which should highly rank
+important papers in the standard literature. However, the bias
+will also make the algorithm miss more recent influential papers. Researchers
+also uncovered several weaknesses in Google's automatic processing of documents
+which could allow authors to game search rankings \cite{beel10}.
+
+\citeseer\ is primarily an automatic citation indexing system \cite{giles98,
+  lawrence99, li06}. The system crawls the web and processes documents which
+appear to be academic papers. This approach produces a large corpus of noisy
+data, which hurts the performance of its ranking algorithm. Also,
+\citeseer\ does not make use of the citation data it processes in its ranking
+algorithm.
+
+Microsoft Academic Search is a relatively new search engine designed to compete
+with Google Scholar. It too uses a proprietary algorithm which combines several
+features, and shows the same weakness to ranking optimization as Scholar.
+
+Here, we present PubCrawl, a system built to test ranking algorithms for
+searching academic papers. The system searches over the complete ACM Digital
+Library. We use Apache Lucene to index documents and estimate relevance and
+PageRank to estimate importance. The system provides a web interface using the
+Django web framework backed by a Postgres database. Users can input queries and
+relative weights for matches in various sections of the document as well as the
+PageRank.
 	
-To do this, we designed PubCrawl, a paper search engine, as a testing bed for
-ranking mechanisms. In building PubCrawl, we used Apache Lucene for text
-indexing to measure a paper’s relevance to a query, and an adaptation of
-PageRank on the papers citation graph for weighting a paper’s importance.
-Currently all papers in the Association of Computing Machinery (ACM) Digital
-Library database have been processed. A simple web user interface is provided,
-where users can input queries and weights for what attributes they feel is most
-important, to tune the result rankings to fit what they feel is most
-appropriate. The top papers are returned, with hyperlinks to the papers’ ACM
-homepage.
-	
-In this report, we detail the design of PubCrawl and investigate the effects of
-many of its features. We conduct a user study to compare the performance of our
-ranking system versus other current systems.
-
-\section{Related Work}
-
-There are a few paper search engines currently in existence, such as CiteseerX
-and Google Scholar. Their ranking process is largely maintained privately, but
-several characteristics of both are described in this section.
-
-CiteseerX's data set is scraped from the web by a crawler, and processed in an
-automated fashion. This has provided CiteseerX with wide and largely hands-off
-coverage of papers. However, due to the purely automated approach used and the
-heterogeneity in data representation on the web, the data collected contains
-errors and missing information. For example, the crawler has mistaken the wrong
-string for the title of a number of papers. This leads to some errors in the
-processing of both the paper data and queries.
-
-Google Scholar also operates with a crawler, and exhibits some of the same
-dirty data issues as CiteseerX. Additionally, Google Scholar has been shown to
-be heavily influenced by citation count, which may be inappropriate for some
-user queries.
-
 \section{ACM Data}
 %Information about ACM data
 
@@ -257,6 +244,10 @@ Several extensions of this work are possible. An extremely challenging question 
 
 
 \section{Acknowledgments}
-\null
+
+\bibliography{refs}{}
+\bibliographystyle{acm}
+
+\end{document}
 
 \end{document}
