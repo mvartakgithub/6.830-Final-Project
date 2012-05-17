@@ -191,7 +191,7 @@ network, and all other variables remain as defined.
 \section{Implementation}
 \label{sec:implementation}
 \subsection{Overview}
-PubCrawl is an online search website built with the Django web framework backed by a Postgres database and Lucene search index. While the Postgres database stores metadata about papers such as the citation graph, author and venue information, Lucene stores indexes for paper titles, abstracts and fulltext. The PubCrawl interface allows users to submit search terms and relative weights to be assigned to title, abstract, full text searches and pagerank. Figure \ref{interface} shows a screenshot of the interface.
+PubCrawl is an online search website built with the Django web framework backed by a Postgres database and Lucene search index. While the Postgres database stores metadata about papers such as the citation graph, author and venue information, Lucene stores indexes for paper titles, abstracts and fulltext. The PubCrawl interface allows users to submit search terms and relative weights to be assigned to title, abstract, full text searches and PageRank. Figure \ref{interface} shows a screenshot of the interface.
 
 \begin{figure}[t]
 \centering
@@ -239,7 +239,7 @@ For PubCrawl's implementation of the adapted PageRank scoring function, we used 
 
 \section{User Study}
 
-To evaluate the quality of PubCrawl results, we performed a preliminary user study. In this study, we compared the quality of PubCrawl results with those from Google Scholar, Microsoft Academic Search, ACM Digital Library and CiteSeer.
+To evaluate the quality of PubCrawl results, we performed a preliminary user study. In this study, we compared the quality of PubCrawl results with those from Google Scholar, Microsoft Academic Search, ACM Digital Library and \citeseer.
 
 \subsection{Methodology}
 
@@ -261,7 +261,7 @@ Some time comparisons.
 
 We observed that it is very difficult to find a scoring function that works well for all search queries. We also realized that combining scores from orthogonal metrics like PageRank and text indexing may not be the best method to obtain an overall ranking.
 
-Several extensions of this work are possible. An extremely challenging question we would like to answer is what is the best way to determine appropriate weights in a ranking function. Using labelled data points and curve fitting or SVMs, we are likely to get a better set of results. We would also like to investigate the following heuristics further: it would also be interesting to extend page rank so that it takes into account relationships between papers, i.e. paper A supports paper B, paper A refutes paper B etc. Similarly we would like to use metadata such as paper venues in order to further refine the scoring. We also looked into whether we could classify papers based on the level of expertise a paper expects. This may also be used to boost our search results.
+Several extensions of this work are possible. An extremely challenging question we would like to answer is what is the best way to determine appropriate weights in a ranking function. Using labeled data points and curve fitting or SVMs, we are likely to get a better set of results. We would also like to investigate the following heuristics further: it would also be interesting to extend page rank so that it takes into account relationships between papers, i.e. paper A supports paper B, paper A refutes paper B etc. Similarly we would like to use metadata such as paper venues in order to further refine the scoring. We also looked into whether we could classify papers based on the level of expertise a paper expects. This may also be used to boost our search results.
 
 
 \section{Acknowledgments}
