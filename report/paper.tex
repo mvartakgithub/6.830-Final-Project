@@ -66,9 +66,26 @@ Django web framework backed by a Postgres database. Users can input queries and
 relative weights for matches in various sections of the document as well as the
 PageRank.
 	
-\section{PubCrawl Design}
+\section{PubCrawl Design and Implementation}
 
-\section{ACM Digital Library}
+\subsection{Overview}
+
+PubCrawl is an online search website for the ACM Digital Library built with the
+Django web framework. It is backed by a Postgres database which stores metadata
+(authors, venues, and citations) and a Lucene search index. The PubCrawl
+interface allows users to submit search terms and assign relative weights to
+title, abstract, and full text searches and PageRank. Figure \ref{interface}
+shows a screenshot of the interface.
+
+\begin{figure}[bt]
+  \begin{center}
+    \includegraphics[width=8in]{images/interface}
+  \end{center}
+  \caption{PubCrawl user interface}
+  \label{interface}
+\end{figure}
+
+\subsection{ACM Digital Library}
 
 The ACM Digital Library is a corpus of over 223,800 academic papers published
 in ACM journals or conference proceedings. The data set is in XML format with
@@ -83,7 +100,7 @@ components. Figure \ref{comp-size} shows the size distribution of these
 components is heavily skewed. We take special consideration of component size
 in our adaptation of the PageRank algorithm.
 
-\begin{figure}[ht]
+\begin{figure}[tb]
   \begin{center}
     \includegraphics[width=5in]{images/component-graph}
   \end{center}
@@ -113,66 +130,51 @@ score documents which contain more terms higher. These features can be
 exploited to improve the quality of search results.
 
 \subsection{Adapted PageRank}
-\label{sec:pagerank}
 
 PageRank is a well-known algorithm for estimating the importance of a web page
 as a function of the number of incoming links \cite{brin98, page99}. It is
 plausible to extend the algorithm by analogy to academic papers and citations.
-However, applying PageRank directly to the ACM citation graph gives suboptimal
-results due to the high number of small components. Papers in these components
-end with disproportionately high PageRank because further iterations do not
-change their initial value very much. Instead of a constant, we set the initial
-value of a paper's PageRank to the proportion of all papers contained in its
-component.
+We use the iterative algorithm as described but tune the parameters to improve
+the quality of the results for the ACM data set.
 
-\section{Implementation}
-\label{sec:implementation}
-\subsection{Overview}
-PubCrawl is an online search website built with the Django web framework backed by a Postgres database and Lucene search index. While the Postgres database stores metadata about papers such as the citation graph, author and venue information, Lucene stores indexes for paper titles, abstracts and fulltext. The PubCrawl interface allows users to submit search terms and relative weights to be assigned to title, abstract, full text searches and PageRank. Figure \ref{interface} shows a screenshot of the interface.
+We set the score source $E$ to a uniform vector with each coordinate equal to
+$0.1$. This setting minimizes the PageRank each paper gets for free while still
+allowing the algorithm to converge. We set the damping factor $d$ to the
+suggested value of $0.85$. This setting reduces the number of iterations needed
+to converge by reducing the amount of PageRank contributed in subsequent
+iterations.
 
-\begin{figure}[t]
-\centering
-	\includegraphics[width=8in]{images/interface}
-	\caption{PubCrawl interface allowing search term and relative weight inputs.}	
-	\label{interface}
-\end{figure}
+We found initializing the PageRank of each paper to a constant gave suboptimal
+results because the ACM citation graph has a high number of small components.
+Papers in these components end with disproportionately high PageRank because
+further iterations do not change their initial value very much. Instead, we set
+the initial value of a paper's PageRank to the proportion of all papers
+contained in its component.
 
-\subsection{Scores and Scaling}
-PubCrawl combines four scores in all - a fulltext search score, a title search score, an abstract search score and the PageRank score. Since Lucene does't score on a pre-defined scale, we normalize all Lucene. Similarly, we normalize PageRanks. We normalize all scores on a per-query basis. This is particularly relevant to PageRank since results for a particular topic may all have low PageRank since the topic is studied by few researchers. By normalizing per-query, we do not penalize topics with a small number of papers.
+\subsection{Combining document scores and PageRanks}
 
-\subsection{Ranking}
-An important challenge faced by PubCrawl is how to effectively combine the four scores above to get an over quality score for a document. We implemented two types of simple ranking functions for this purpose:
+We compute a final score used for ranking documents as a linear function of
+subscores. One issue is that these subscores are not necessarily on the same
+scale. In particular, Lucene scores are on an arbitrary scale. To address this
+issue, we normalize scores per query.
 
-\begin{itemize}
-	\item 2-factor ranking: As a first step, we only allowed full text and page rank scores to be combined. We used a simple sorting technique for this since every document returned by the search has an associated full text and page rank score.
-	\item 4-factor ranking: In order to combine multiple scores, i.e., to combine multiple sorted lists, we used the RankJoin algorithm. Briefly, RankJoin is a top-k algorithm that takes multiple sorted lists and traverses them in a round-robin fashion performing hash joins on already seen tuples. It is able to stop before traversing all tuples because once the max possible score of unseen tuples becomes lesser than the minimum score of the top-k tuples, we are guaranteed to have the required top-k set of tuples. We implemented a slight variation of RankJoin since we don't need joins across all 4 lists.
-\end{itemize}
+The PageRank algorithm includes a normalization step at each iteration.
+However, if a particular topic is studied by only a few researchers, all the
+papers relevant to that topic will have low PageRank. To address this issue, we
+renormalize PageRanks per query.
 
-\subsection{Tuning Parameters}
+We implemented two ranking functions. The first only uses the full text score
+and PageRank. The second uses a rank join--inspired algorithm to combine lists
+of hits sorted by each of title, abstract, and full text scores and PageRank.
+Briefly, the algorithm maintains the top $k$ hits seen so far. In each
+iteration, we pop the maximum element off of the next list in round-robin order
+and hash it. When we encounter a duplicate, we update the combined score and
+its position in the top $k$. The algorithm terminates when the maximum possible
+score of unseen tuples is less than the score of the $k$th hit.
 
-To tune weights for the four factors, we obtained information about seminal papers on 6 topics from experts in the respective areas. We then manually picked weights that gave good results for all 6 topics.
-
-\subsection{PageRank Parameters}
-For PubCrawl's implementation of the adapted PageRank scoring function, we used several parameters for variables defined in Section \ref{sec:pagerank}:\\
-
-\begin{itemize}
-\item For the score source $E$, we use a uniform value. We minimize the value
-  of $E$ that still results in convergence, to reduce the total amount of
-  freely created score. In our system, we found $E=0.1$ to be appropriate.
-
-\item For initializing node scores, we use a linear relationship with the size
-  of the component containing the node. If the total number of papers (and
-  nodes) is $N$ and paper $p$ is in a component with $X$ nodes, then the
-  initial score for $p$ is set to $\frac{X}{N}$. Thus, larger components start
-  with initially higher scores, and typically converge with higher final
-  scores.
-
-\item For the damping factor of our final scoring function (Equation
-  \ref{eqn:damping}), we use $d=0.85$. This is a reflection of the PageRank
-  study indicating this value as reasonable, rather than a precisely chosen
-  one.
-
-\end{itemize} 
+To tune weights for the four factors, we obtained information about important
+papers on 6 topics from experts in the respective areas. We then manually
+picked weights that gave good results for all 6 topics.
 
 \section{User Study}
 
