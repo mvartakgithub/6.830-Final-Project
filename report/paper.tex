@@ -66,21 +66,30 @@ Django web framework backed by a Postgres database. Users can input queries and
 relative weights for matches in various sections of the document as well as the
 PageRank.
 	
-\section{ACM Data}
-%Information about ACM data
-
-
 \section{PubCrawl Design}
 
-PubCrawl is designed to rank papers based on relevance and importance. To
-measure relevance, we use Apache Lucene, a high-performance text search engine
-library for Java. Lucene is used to provide text indexing, returning the papers
-most textually relevant to a query. To measure importance, we use a variation
-of the classic PageRank algorithm on the citation graph of papers. The
-weighting between the text indexing and PageRank score is an input the users
-can provide, as discussed in \ref{sec:implementation}. Currently, the ACM
-dataset has been gathered and applied using PubCrawl. Through the design of the
-system, we discuss the effect of a number of its features.
+\section{ACM Digital Library}
+
+The ACM Digital Library is a corpus of over 223,800 academic papers published
+in ACM journals or conference proceedings. The data set is in XML format with
+rich metadata including citations. Unlike \citeseer, we do not have to do
+sophisticated NLP to build a citation graph, increasing the quality of the
+resulting graph.
+
+However, because the data set is limited to ACM publications, the citation
+graph is highly disconnected. Although the vast majority of the papers
+(176,285) are contained in one component, in total there are 45,571 connected
+components. Figure \ref{comp-size} shows the size distribution of these
+components is heavily skewed. We take special consideration of component size
+in our adaptation of the PageRank algorithm.
+
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=5in]{images/component-graph}
+  \end{center}
+  \caption{Distribution of component sizes in the citation graph}
+  \label{comp-size}
+\end{figure}
 
 \subsection{Document scores}
 
