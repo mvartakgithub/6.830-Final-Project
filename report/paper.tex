@@ -115,87 +115,15 @@ exploited to improve the quality of search results.
 \subsection{Adapted PageRank}
 \label{sec:pagerank}
 
-The relationship between academic papers draws a strong analogy with that
-between web pages. Just as pages on the web embed links to other pages, papers
-cite other papers. This forms a directed graph of paper nodes and citation
-edges, where an edge from one paper $A$ to another paper $B$ indicates that $A$
-cited $B$.
-
-To exploit the similarity between the two environments, we use a variation of
-the PageRank algorithm. PageRank is an algorithm used by the Google search
-engine that provides a weighted score for web pages based on the number of
-external pages that cite a particular web page, and the PageRank of those
-external pages. We use a similar framework for academic papers, where a paper's
-score is based on the number of other papers citing it, and the score of those
-papers. The most simple form of this captured by the following equation:\\
-\begin{equation}
-\label{eqn:basic}
-S(p)= \Sigma_{c \in C} \frac{S(c)}{D(c)}
-\end{equation}
-where $p$ is the paper being scored, $C$ is the set of all papers that cite
-$p$, $S$ is the scoring function, and $D$ is the degree function (indicating
-the number of papers a certain paper cites).
-
-The score of all nodes can be calculated in an iterative manner. All nodes can
-be initialized to a default score, such as 1. Then, in each round, Equation
-\ref{eqn:basic} can be applied to all nodes. This process is repeated until
-node scores converge. However, this scoring function is further complicated by
-a couple of features of academic paper relations: cycles and components.
-
-Citation cycles provide one source of complication. In citation cycles, a
-paper's chain of citations returns to the paper itself. A number of these
-cycles exist in the data set. In general, these cycles act as a score sink,
-shifting the score of external nodes into the cycle round after round. Inside
-the cycle, the score rotates among nodes, preventing convergence. To reduce the
-impact of these cycles, a score source is provided for node each round, as also
-done in PageRank. To provide convergence, the total sum of all node scores must
-remain constant, so node scores must be normalized per round. This results in
-an updated scoring function of:\\
-\begin{equation}
-\label{eqn:cycle}
-S(p)= n(\Sigma_{c \in C} \frac{S(c)}{D(c)}+E(p))
-\end{equation}
-where $E$ is a source of score, $n$ is the normalization factor, and all other
-variables remain as defined.
-
-
-
-\begin{figure}[t]
-\centering \includegraphics[width=5in]{images/component-graph}
-	\caption{Sizes of components in the ACM data set and the number of each
-      size's occurrence.}
-	\label{comp-size}
-\end{figure}
-
-Components in the citation graph are the other source of complication. Papers
-in the same component are either both part of the same citation chain or share
-a common ancestor or descendant in their respective chain. The ACM data
-exhibits 45,571 total components, with one large component of 176,285 papers,
-and a large number of smaller components ranging in size from one to ten
-papers, as displayed in Figure \ref{comp-size}. Small components are papers
-that don't cite many or any other papers in the data set and aren't heavily
-cited. This implies that nodes in small components should not be highly ranked.
-
-To adjust for this, nodes are categorized into the components they belong in.
-Instead of initializing node scores to be a constant value such as 1, they are
-instead initialized to a score linear to the size of the component containing
-the nodes. Intuitively, this means that papers in larger components will
-receive higher scores, as desired.
-
-A final variation on the basic scoring function is the incorporation of a
-damping factor $d$. A user following a citation chain will eventually stop,
-possibly at the end of the chain. Intuitively, the farther down a chain a user
-traverses, the less likely the papers will relevant and important to the
-original query, and the more likely the user will stop. The damping factor
-models this behavior by reducing the change produced by the scoring function
-as the number of rounds increases. Adapted from PageRank, this results in the
-final version of our scoring function:\\
-\begin{equation}
-\label{eqn:damping}
-S(p)= n(\frac{1-d}{N}+d(\Sigma_{c \in C} \frac{S(c)}{D(c)}+E(p)))
-\end{equation}
-where $d$ is the damping factor, $N$ is the total number of papers/nodes in the
-network, and all other variables remain as defined.
+PageRank is a well-known algorithm for estimating the importance of a web page
+as a function of the number of incoming links \cite{brin98, page99}. It is
+plausible to extend the algorithm by analogy to academic papers and citations.
+However, applying PageRank directly to the ACM citation graph gives suboptimal
+results due to the high number of small components. Papers in these components
+end with disproportionately high PageRank because further iterations do not
+change their initial value very much. Instead of a constant, we set the initial
+value of a paper's PageRank to the proportion of all papers contained in its
+component.
 
 \section{Implementation}
 \label{sec:implementation}
