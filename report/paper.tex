@@ -143,14 +143,22 @@ PageRank is a well-known algorithm for estimating the importance of a web page
 as a function of the number of incoming links \cite{brin98, page99}. It is
 plausible to extend the algorithm by analogy to academic papers and citations.
 We use the iterative algorithm as described but tune the parameters to improve
-the quality of the results for the ACM data set.
+the quality of the results for the ACM data set. The update rule is:
 
-We set the score source $E$ to a uniform vector with each coordinate equal to
-$0.1$. This setting minimizes the PageRank each paper gets for free while still
-allowing the algorithm to converge. We set the damping factor $d$ to the
-suggested value of $0.85$. This setting reduces the number of iterations needed
-to converge by reducing the amount of PageRank contributed in subsequent
-iterations.
+\begin{equation}
+R(p)= n\left(\frac{1 - d}{N} + d\left(\sum_{c \in C}
+\frac{R(c)}{D(c)}+E(p)\right)\right)
+\end{equation}
+
+where $R(\cdot)$ is the PageRank of a node, $D(\cdot)$ is the outdegree of a
+node, $E(\cdot)$ is the score source of a node (needed to converge with
+cycles), $d$ is the damping factor, and $n$ is the normalizing factor.
+
+We set $E$ to a uniform vector with each coordinate equal to $0.1$. This
+setting minimizes the PageRank each paper gets for free while still allowing
+the algorithm to converge. We set $d$ to the suggested value of $0.85$. This
+setting reduces the number of iterations needed to converge by reducing the
+amount of PageRank contributed in subsequent iterations.
 
 We found initializing the PageRank of each paper to a constant gave suboptimal
 results because the ACM citation graph has a high number of small components.
