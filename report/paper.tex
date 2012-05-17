@@ -92,16 +92,16 @@ fields. We also include various metadata to simplify the implementation of the
 front-end.
 
 Lucene uses the Boolean model \cite{lancaster73} to filter documents and the
-Vector Space Model \cite{salton75} to score documents. Documents $d$ and
-queries $q$ are vectors $V(\cdot)$ with each term a dimension and coordinates
-equal to tf*idf values. Then, the relevance of a document to a query is related
-to the angle between them (the cosine similarity score). Lucene generalizes the
-cosine similarity score in several ways. First, documents are allowed to have
-multiple and duplicate fields. Second, Lucene allows index-time boosting of
-documents and fields as well as query-time boosting of query terms. Finally,
-Lucene does not require every term to appear in hits, instead using a
-coordination factor to score documents which contain more terms higher. These
-features can be exploited to improve the quality of search results.
+Vector Space Model \cite{salton75} to score documents. Documents and queries
+are vectors with each term a dimension and coordinates equal to tf*idf values.
+Then, the relevance of a document to a query is related to the angle between
+them (the cosine similarity score). Lucene generalizes the cosine similarity
+score in several ways. First, documents are allowed to have multiple and
+duplicate fields. Second, Lucene allows index-time boosting of documents and
+fields as well as query-time boosting of query terms. Finally, Lucene does not
+require every term to appear in hits, instead using a coordination factor to
+score documents which contain more terms higher. These features can be
+exploited to improve the quality of search results.
 
 \subsection{Adapted PageRank}
 \label{sec:pagerank}
