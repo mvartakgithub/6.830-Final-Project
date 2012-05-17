@@ -1,0 +1,64 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{fontspec}
+\usepackage[letterpaper, margin=1in]{geometry}
+\usepackage{parskip}
+\usepackage{sectsty}
+\usepackage{unicode-math}
+
+\defaultfontfeatures{Scale=MatchLowercase, Mapping=tex-text}
+\setmainfont{Optima LT Std}
+\setmathfont{Neo Euler}
+
+\sectionfont{\fontspec[Scale=1.44]{Optima LT Std}}
+\subsectionfont{\fontspec[Scale=1.2]{Optima LT Std}}
+
+\begin{document}
+\pagestyle{empty}
+\Large
+
+\section*{Indexing documents}
+
+\begin{enumerate}
+\item Parse XML: extract title, subtitle, abstract, full text, metadata
+\item Tokenize, normalize, filter stopwords
+\item Build inverted index
+\end{enumerate}
+
+\section*{Searching documents}
+
+\subsection*{Filter documents using the Boolean Model}
+
+\begin{enumerate}
+\item Tokenize, normalize, filter the terms of the query
+\item Rewrite the query in disjunctive normal form
+\item Return documents which satisfy the query
+\end{enumerate}
+
+\subsection*{Score documents using the Vector Space Model}
+
+Document and query are high-dimensional vectors
+
+Cosine similarity:
+
+\begin{equation*}
+\mathrm{similarity}(q, d) = \frac{V(q) \cdot V(d)}{\vert V(q) \vert \vert V(d)
+  \vert}
+\end{equation*}
+
+Adapted for Lucene:
+
+\begin{equation*}
+\mathrm{score}(q, d) = \mathrm{coord}(q,d) \mathrm{queryBoost}(q) \frac{V(q)
+  \cdot V(d)}{\vert V(q) \vert} \mathrm{docNorm}(d) \mathrm{docBoost}(d)
+\end{equation*}
+
+Precompute some things and further generalize:
+
+\begin{equation*}
+  \mathrm{score}(q,d) = \mathrm{coord}(q,d)\mathrm{queryNorm}(q) \sum_{t \in q}
+  \left( \mathrm{tf}(t, d) \mathrm{idf}(t)^2 \mathrm{boost}(t) \mathrm{norm}(t,
+  d) \right)
+\end{equation*}
+
+\end{document}
