@@ -92,14 +92,25 @@ graph is highly disconnected. Although the vast majority of the papers
 (176,285) are contained in one component, in total there are 45,571 connected
 components. Figure \ref{comp-size} shows the size distribution of these
 components is heavily skewed. We take special consideration of component size
-in our adaptation of the PageRank algorithm.
+in our adaptation of the PageRank algorithm. Figure \ref{degree-dist} shows the
+distribution of outdegrees in the largest component of the citation graph. As
+expected, this distribution follows a power law.
 
-\begin{figure}[tb]
+\begin{figure}[p]
   \begin{center}
     \includegraphics[width=5in]{images/component-graph}
   \end{center}
   \caption{Distribution of component sizes in the citation graph}
   \label{comp-size}
+\end{figure}
+
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics{images/degree-graph}
+  \end{center}
+  \caption{Distribution of outdegrees in the largest component of the citation
+    graph}
+  \label{degree-dist}
 \end{figure}
 
 \subsection{Document scores}
@@ -161,6 +172,19 @@ Papers in these components end with disproportionately high PageRank because
 further iterations do not change their initial value very much. Instead, we set
 the initial value of a paper's PageRank to $\vert C(p) \vert / N$ or the
 proportion of all papers contained in its component.
+
+Figure \ref{pagerank-dist} shows the distribution of PageRanks computed in that
+component. This distribution also follows a power law, which is expected given
+the distribution of outdegrees.
+
+\begin{figure}[p]
+  \begin{center}
+    \includegraphics{images/pageranks}
+  \end{center}
+  \caption{Distribution of PageRanks in the largest component of the citation
+    graph}
+  \label{pagerank-dist}
+\end{figure}
 
 \subsection{Combining document scores and PageRanks}
 
