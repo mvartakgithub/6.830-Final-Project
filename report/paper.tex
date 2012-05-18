@@ -180,43 +180,144 @@ papers relevant to that topic will have low PageRank. To address this issue, we
 renormalize PageRanks per query.
 
 We implemented two ranking functions. The first only uses the full text score
-and PageRank. The second uses a rank join--inspired algorithm to combine lists
-of hits sorted by each of title, abstract, and full text scores and PageRank.
-Briefly, the algorithm maintains the top $k$ hits seen so far. In each
-iteration, we pop the maximum element off of the next list in round-robin order
-and hash it. When we encounter a duplicate, we update the combined score and
-its position in the top $k$. The algorithm terminates when the maximum possible
-score of unseen tuples is less than the score of the $k$th hit.
-
-To tune weights for the four factors, we obtained information about important
-papers on 6 topics from experts in the respective areas. We then manually
-picked weights that gave good results for all 6 topics.
+and PageRank. The second uses an algorithm based on RankJoin
+\cite{DBLP:conf/vldb/IlyasAE03} to combine lists of hits sorted by each of
+title, abstract, and full text scores and PageRank. The algorithm maintains the
+top $k$ hits seen so far. In each iteration, we pop the maximum element off of
+the next list in round-robin order and hash it. When we encounter a duplicate,
+we update the combined score and its position in the top $k$. The algorithm
+terminates when the maximum possible score of unseen tuples is less than the
+score of the $k$th hit.
 
 \section{User Study}
 
-To evaluate the quality of PubCrawl results, we performed a preliminary user study. In this study, we compared the quality of PubCrawl results with those from Google Scholar, Microsoft Academic Search, ACM Digital Library and \citeseer.
+To evaluate the quality of PubCrawl results, we performed a preliminary user
+study comparing the quality of PubCrawl results with those from Google Scholar,
+Microsoft Academic Search, ACM Digital Library and CiteSeer.
 
 \subsection{Methodology}
 
-For 3 topics, we performed searches on Google Scholar, Microsoft Academic Search, ACM Digital Library, CiteSeer and PubCrawl. We then obtained lists of the top 10 ACM publication results from these search engines. We provided these lists to our experts. The experts rated each of the 10 results as Highly Relevant, Moderately Relevant and Not relevant. They also ranked the five lists in order of decreasing quality. Table \ref{} shows the results for the 3 test topics.
+We obtained information about important papers on 6 topics from experts in the
+respective areas. We then manually picked weights, given in Table \ref{weights}
+that gave good results for all 6 topics. 
 
+\begin{table}[bt]
+  \begin{center}
+    \begin{tabular}{ll}
+      Parameter & Weight\\
+      \hline
+      Title & 0.1\\
+      Abstract & 0\\
+      Document & 0.5\\
+      PageRank & 1\\
+    \end{tabular}
+  \end{center}
+  \caption{Manually optimized parameter settings for PubCrawl user study}
+  \label{weights}
+\end{table}
 
-We find that PubCrawl consistently does as well as CiteSeer and ACM DL. 
+For 4 topics, we performed searches on the engines, generating lists of the top
+10 ACM publications from each. We provided these lists to our experts who rated
+each of the 10 results as Highly Relevant, Moderately Relevant or Not relevant.
+They also ranked the five lists in order of decreasing quality. 
 
-\subsection{Challenges}
-The main challenges with evaluating the user study were (1) Ground truth wasn't always clearly known, (2) Ground-truth is subjective, (3) since the data only included ACM papers, we had to discard a large number of highly relevant but non-ACM publications.
+Figure \ref{relevance1} shows the distribution of results grouped by ranks
+assigned by users. PubCrawl produces a large number of moderately relevant
+document but a low number both of highly relevant and not relevant results.
+While we would ideally like to maximize the former, the low number of
+irrelevant results suggests are method has a lower false positive rate.
 
-\section{Results}
+Figures \ref{relevance2} shows the relevance ratio across all search engines.
+Relevance ratio is defined as $(H + M) / N$, where $H$ is the number of Highly
+Relevant results, $M$ is the number of Moderately Relevant results, and $N$ is
+the number of Not relevant results. PubCrawl has relevance ratio comparable to
+Google Scholar and Microsoft Academic Search. CiteSeer, on the other hand, has
+very poor relevance score since it produces a large number of irrelevant
+results. ACM Digital Library has the largest number of relevant documents in
+its results.
 
-User study results.
+In Figure \ref{relevance3}, we show a total quality score which we define as $H
+- N + .1 M$. We choose this metric to highly rank relevant results, penalize
+for non-relevant results and factor in moderately relevant results.
 
-Some time comparisons.
+Finally, in Figure \ref{rank1}, we show the average rank assigned to an engine
+based on the ranks assigned to each engine by our experts. A higher score
+(scale of 5) indicates a better rank. On average, PubCrawl ranked as high as
+the other engines except Google Scholar.
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=5in]{images/Relevance1}
+\caption{Relevance of search results grouped as Highly Relevant, Moderately
+  Relevant and Not Relevant.}
+\label{relevance1}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=5in]{images/Relevance2}
+\caption{Relevance ratio vs. Search Engines.}
+\label{relevance2}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=5in]{images/Relevance3}
+\caption{Quality Score.}
+\label{relevance3}
+\end{figure}
+
+\begin{figure}[p]
+\centering
+\includegraphics[width=5in]{images/Rank}
+\caption{Rank order of search engines (Higher score indicates better rank; scale of 5).}
+\label{rank1}
+\end{figure}
+
+\subsection{Discussion}
+
+Our preliminary user study only involved 4 topics and hence a larger study must
+be undertaken to rigorously study the quality of results. We also observed
+that: (1) quality of results depends heavily on the breadth of the search term
+(a narrow search term produces better results), (2) ground truth wasn't always
+clearly known, (3) ground-truth is subjective, (4) we had to discard a large
+number of highly relevant but non-ACM publications. Furthermore, because we did
+not have data for non-ACM papers citing ACM papers, our PageRank algorithm was
+weaker compared to other search engines. However, our preliminary user study
+shows that PubCrawl can find relevant documents and effectively trade off
+PageRank and text indexing scores.
 
 \section{Conclusion and Future Work}
 
-We observed that it is very difficult to find a scoring function that works well for all search queries. We also realized that combining scores from orthogonal metrics like PageRank and text indexing may not be the best method to obtain an overall ranking.
+In this work, we built a publication search engine based on the PageRank
+algorithm and the Lucene text index. We adapted PageRank for the specific
+properties of the citation graph and indexed various paper attributes such as
+title, abstract and full text. We then explored multiple ways of combining the
+text indexing scores with PageRank. We observed that it is very difficult to
+find a scoring function that works well for all search queries. We also
+realized that combining scores from orthogonal metrics like PageRank and text
+indexing may not be the best method to obtain an overall ranking. Our user
+study demonstrates that PubCrawl has a low false positive rate and produces a
+large number of moderately relevant results. However, it produces a low number
+of highly relevant results and there is potential to extend this work by
+finding better ranking functions.
 
-Several extensions of this work are possible. An extremely challenging question we would like to answer is what is the best way to determine appropriate weights in a ranking function. Using labeled data points and curve fitting or SVMs, we are likely to get a better set of results. We would also like to investigate the following heuristics further: it would also be interesting to extend page rank so that it takes into account relationships between papers, i.e. paper A supports paper B, paper A refutes paper B etc. Similarly we would like to use metadata such as paper venues in order to further refine the scoring. We also looked into whether we could classify papers based on the level of expertise a paper expects. This may also be used to boost our search results.
+We observed that it is very difficult to find a scoring function that works
+well for all search queries. We also realized that combining scores from
+orthogonal metrics like PageRank and text indexing may not be the best method
+to obtain an overall ranking.
+
+Several extensions of this work are possible. An extremely challenging question
+we would like to answer is what is the best way to determine appropriate
+weights in a ranking function. Using labeled data points and curve fitting or
+SVMs, we are likely to get a better set of results. We would also like to
+investigate the following heuristics further: it would also be interesting to
+extend page rank so that it takes into account relationships between papers,
+i.e. paper A supports paper B, paper A refutes paper B etc. Similarly we would
+like to use metadata such as paper venues in order to further refine the
+scoring. We also looked into whether we could classify papers based on the
+level of expertise a paper expects. This may also be used to boost our search
+results.
 
 
 \section{Acknowledgments}
