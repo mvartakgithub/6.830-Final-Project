@@ -147,13 +147,14 @@ We use the iterative algorithm as described but tune the parameters to improve
 the quality of the results for the ACM data set. The update rule is:
 
 \begin{equation}
-R(p)= n\left(\frac{1 - d}{N} + d\left(\sum_{c \in C}
+R(p)= n\left(\frac{1 - d}{N} + d\left(\sum_{c \in C(p)}
 \frac{R(c)}{D(c)}+E(p)\right)\right)
 \end{equation}
 
 where $R(\cdot)$ is the PageRank of a node, $D(\cdot)$ is the outdegree of a
 node, $E(\cdot)$ is the score source of a node (needed to converge with
-cycles), $d$ is the damping factor, and $n$ is the normalizing factor.
+cycles), $C(\cdot)$ is the component containing a node, $d$ is the damping
+factor, and $n$ is the normalizing factor.
 
 We set $E$ to a uniform vector with each coordinate equal to $0.1$. This
 setting minimizes the PageRank each paper gets for free while still allowing
@@ -165,8 +166,8 @@ We found initializing the PageRank of each paper to a constant gave suboptimal
 results because the ACM citation graph has a high number of small components.
 Papers in these components end with disproportionately high PageRank because
 further iterations do not change their initial value very much. Instead, we set
-the initial value of a paper's PageRank to the proportion of all papers
-contained in its component.
+the initial value of a paper's PageRank to $\vert C(p) \vert / N$ or the
+proportion of all papers contained in its component.
 
 \subsection{Combining document scores and PageRanks}
 
