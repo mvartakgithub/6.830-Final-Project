@@ -153,8 +153,8 @@ R(p)= n\left(\frac{1 - d}{N} + d\left(\sum_{c \in C(p)}
 
 where $R(\cdot)$ is the PageRank of a node, $D(\cdot)$ is the outdegree of a
 node, $E(\cdot)$ is the score source of a node (needed to converge with
-cycles), $C(\cdot)$ is the component containing a node, $d$ is the damping
-factor, and $n$ is the normalizing factor.
+cycles), $C(\cdot)$ is the component containing a node, $N$ is the total number
+of papers, $d$ is the damping factor, and $n$ is a normalizing factor.
 
 We set $E$ to a uniform vector with each coordinate equal to $0.1$. This
 setting minimizes the PageRank each paper gets for free while still allowing
