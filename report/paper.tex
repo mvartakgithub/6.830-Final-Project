@@ -203,10 +203,11 @@ and PageRank. The second uses an algorithm based on RankJoin
 \cite{DBLP:conf/vldb/IlyasAE03} to combine lists of hits sorted by each of
 title, abstract, and full text scores and PageRank. The algorithm maintains the
 top $k$ hits seen so far. In each iteration, we pop the maximum element off of
-the next list in round-robin order and hash it. When we encounter a duplicate,
-we update the combined score and its position in the top $k$. The algorithm
-terminates when the maximum possible score of unseen tuples is less than the
-score of the $k$th hit.
+the next list in round-robin order and hash it. If the element can be joined
+with an element seen from each of the other lists, then we update its score in
+the top $k$. We special case the list of abstract scores because not all
+documents have abstracts. The algorithm terminates when the maximum possible
+score of unseen tuples is less than the score of the $k$th hit.
 
 \section{User Study}
 
