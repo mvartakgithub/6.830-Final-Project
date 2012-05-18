@@ -1,6 +1,5 @@
 \documentclass[12pt]{article}
 \setcounter{secnumdepth}{2} 
-
 \title{PubCrawl: A Publication Search Engine}
 \author{Frank Li (frankli@mit.edu) \\
 Abhishek Sarkar (aksarkar@mit.edu)\\
@@ -9,84 +8,182 @@ Manasi Vartak (mvartak@mit.edu)}
 
 \usepackage{graphicx}
 
+\newcommand{\citeseer}{CiteSeer$^\chi$}
+
 \begin{document}
 \maketitle
 
+\begin{abstract}
+Searching for documents ranked by relevance is a well-studied problem for web
+pages. In particular, there are frameworks for estimating relevance as a
+function of the content of the document and algorithms for estimating relevance
+as a function of incoming links. However, further specialization of these
+techniques is required to search a corpus of academic papers. Academic papers
+are highly structured, lending additional weight to matches which appear in
+important sections such as the title or abstract. Moreover, citations have
+contextual information which changes the weight which should be contributed to
+cited papers. Here we describe PubCrawl, a search engine built for the ACM
+Digital Library. The system allows users to weight the relative importance of
+matches in various sections of the documents. We also implement a version of
+PageRank over the dataset. We evaluate the system in user studies.
+\end{abstract}
 
 \section{Introduction}
 
-	A primary source of information for computer science researchers are published papers from conference proceedings and journals. However, there are simply too many papers in published in too many venues to keep track of. While experienced researchers are typically versed in the famous and influential papers of their respective fields, they may be less familiar with other areas that might still be needed for their work. Less experienced researchers and students may have even less or no knowledge of the relevant papers of a subject.
+A primary source of information for computer science researchers are published
+papers from conference proceedings and journals. As the number of papers and
+venues increases, the ability to quickly find papers relevant to a given topic
+becomes more important. In particular, researchers want search engines which
+return important papers.
 
-	To address this issue, researchers have create paper search engines, such as Google Scholar and CiteseerX. However, the ranking process for these systems is largely privately maintained. In this paper, we investigate the process of ranking in the academic papers setting. An understanding of this is important to create a better search system.
-	
-	To do this, we designed PubCrawl, a paper search engine, as a testing bed for ranking mechanisms. In building PubCrawl, we used Apache Lucene for text indexing to measure a paper’s relevance to a query, and an adaptation of PageRank on the papers citation graph for weighting a paper’s importance. Currently all papers in the Association of Computing Machinery (ACM) Digital Library database have been processed. A simple web user interface is provided, where users can input queries and weights for what attributes they feel is most important, to tune the result rankings to fit what they feel is most appropriate. The top papers are returned, with hyperlinks to the papers’ ACM homepage.
-	
-	In this report, we detail the design of PubCrawl and investigate the effects of many of its features. We conduct a user study to compare the performance of our ranking system versus other current systems. 
+There are several existing search engines for academic papers, most prominently
+Google Scholar, \citeseer, and Microsoft Academic Search. Google Scholar uses a
+proprietary algorithm which combines several approaches. However, researchers
+have partially reverse engineered it \cite{beel09a, beel09b}. In particular,
+the algorithm is biased towards highly cited papers, which should highly rank
+important papers in the standard literature. However, the bias
+will also make the algorithm miss more recent influential papers. Researchers
+also uncovered several weaknesses in Google's automatic processing of documents
+which could allow authors to game search rankings \cite{beel10}.
 
-\section{Related Work}
+\citeseer\ is primarily an automatic citation indexing system \cite{giles98,
+  lawrence99, li06}. The system crawls the web and processes documents which
+appear to be academic papers. This approach produces a large corpus of noisy
+data, which hurts the performance of its ranking algorithm. Also,
+\citeseer\ does not make use of the citation data it processes in its ranking
+algorithm.
 
-There are a few paper search engines currently in existence, such as CiteseerX and Google Scholar. Their ranking process is largely maintained privately, but several characteristics of both are described in this section.
+Microsoft Academic Search is a relatively new search engine designed to compete
+with Google Scholar. It too uses a proprietary algorithm which combines several
+features, and shows the same weakness to ranking optimization as Scholar.
 
-CiteseerX's data set is scraped from the web by a crawler, and processed in an automated fashion. This has provided CiteseerX with wide and largely hands-off coverage of papers. However, due to the purely automated approach used and the heterogeneity in data representation on the web, the data collected contains errors and missing information. For example, the crawler has mistaken the wrong string for the title of a number of papers. This leads to some errors in the processing of both the paper data and queries.
-
-Google Scholar also operates with a crawler, and exhibits some of the same dirty data issues as CiteseerX. Additionally, Google Scholar has been shown to be heavily influenced by citation count, which may be inappropriate for some user queries.
+Here, we present PubCrawl, a system built to test ranking algorithms for
+searching academic papers. The system searches over the complete ACM Digital
+Library. We use Apache Lucene \cite{lucene} to index documents and estimate relevance and an adapted PageRank \cite{page99} to estimate importance. The system provides a web interface using the Django web framework backed by a Postgres database. Users can input queries and relative weights for matches in various sections of the document as well as the PageRank.
 
 \section{ACM Data}
 %Information about ACM data
 
+The complete ACM Digital Library was obtained from the Association for Computing Machinery. It consists of 228,300 papers, primarily those published in ACM-affiliated venues. The data contains both paper text and meta-data in XML format.
+
+One important meta-data recorded is a paper's citations. This allows the data to form a citation graph, where papers are nodes and an edge from a paper A to a paper B indicates A cites B. The citation graph of the ACM data set has two interesting features that become relevant to our investigation: cycles and components.
+
+In citation cycles, a paper's chain of citations returns to the paper itself. A number of these cycles exist in the data set, including self-citations and cycles of several papers. Typically, a self-citation occurs when a paper cites a different document with the same title and author but no publication information, such as a web page. Multi-paper cycles tend to be published around the same time. Often the cycle's papers are published in the same venue, making it impossible to determine a chronological ordering of the cycle.
+
+The citation graph of the ACM data is not completely connected. The graph is composed of a number of components, where papers
+in the same component are either both part of the same citation chain or share
+a common ancestor or descendant in their respective chain. This largely arises because many citation links are missing since the ACM data is limited in coverage to ACM papers. The ACM data
+exhibits 45,571 total components, with one large component of 176,285 papers,
+and a large number of smaller components ranging in size from one to ten
+papers, as displayed in Figure \ref{comp-size}. 
+
+\begin{figure}[t]
+\centering \includegraphics[width=5in]{images/component-graph}
+	\caption{Sizes of components in the ACM data set and the number of each
+      size's occurrence.}
+	\label{comp-size}
+\end{figure}
+
+
 
 \section{PubCrawl Design}
 
-PubCrawl is designed to rank papers based on relevance and importance. To measure relevance, we use Apache Lucene, a high-performance text search engine library for Java. Lucene is used to provide text indexing, returning the papers most textually relevant to a query. To measure importance, we use a variation of the classic PageRank algorithm on the citation graph of papers. The weighting between the text indexing and PageRank score is an input the users can provide, as discussed in \ref{sec:implementation}. Currently, the ACM dataset has been gathered and applied using PubCrawl. Through the design of the system, we discuss the effect of a number of its features.
+PubCrawl is designed to rank papers based on relevance and importance. To
+measure relevance, we use Apache Lucene, a high-performance text search engine
+library for Java \cite{lucene}. Lucene is used to provide text indexing, returning the papers
+most textually relevant to a query. To measure importance, we use a variation
+of the classic PageRank algorithm \cite{page99} on the citation graph of papers. The weighting between the text indexing and PageRank score is an input the users
+can provide, as discussed in \ref{sec:implementation}. Currently, the ACM
+dataset has been gathered and applied using PubCrawl. Through the design of the
+system, we discuss the effect of a number of its features.
 
-\subsection{Lucene Text Indexing}
-%Abhishek
+\subsection{Document scores}
+
+We use Apache Lucene \cite{lucene} to index documents and provide scores based
+on the content of documents. We build the usual inverted index over the corpus,
+filtering out stopwords. The structure of the documents is preserved in the XML
+corpus, so we can index titles, subtitles, abstracts, and full text as separate
+fields. We also include various metadata to simplify the implementation of the
+front-end.
+
+Lucene uses the Boolean model \cite{lancaster73} to filter documents and the
+Vector Space Model \cite{salton75} to score documents. Documents $d$ and
+queries $q$ are vectors $V(\cdot)$ with each term a dimension and coordinates
+equal to tf*idf values. Then, the relevance of a document to a query is related
+to the angle between them (the cosine similarity score). Lucene generalizes the
+cosine similarity score in several ways. First, documents are allowed to have
+multiple and duplicate fields. Second, Lucene allows index-time boosting of
+documents and fields as well as query-time boosting of query terms. Finally,
+Lucene does not require every term to appear in hits, instead using a
+coordination factor to score documents which contain more terms higher. These
+features can be exploited to improve the quality of search results.
 
 \subsection{Adapted PageRank}
 \label{sec:pagerank}
 
-The relationship between academic papers draws a strong analogy with that between web pages. Just as pages on the web embed links to other pages, papers cite other papers. This forms a directed graph of paper nodes and citation edges, where an edge from one paper $A$ to another paper $B$ indicates that $A$ cited $B$.
+The relationship between academic papers draws a strong analogy with that
+between web pages. Just as pages on the web embed links to other pages, papers
+cite other papers. This forms a directed graph of paper nodes and citation
+edges, where an edge from one paper $A$ to another paper $B$ indicates that $A$
+cited $B$.
 
-To exploit the similarity between the two environments, we use a variation of the PageRank algorithm. PageRank is an algorithm used by the Google search engine that provides a weighted score for web pages based on the number of external pages that cite a particular web page, and the PageRank of those external pages. We use a similar framework for academic papers, where a paper's score is based on the number of other papers citing it, and the score of those papers. The most simple form of this captured by the following equation:\\
+To exploit the similarity between the two environments, we use a variation of
+the PageRank algorithm \cite{page99}. PageRank is an algorithm used by the Google search engine that provides a weighted score for web pages based on the number of
+external pages that cite a particular web page, and the PageRank of those
+external pages. We use a similar framework for academic papers, where a paper's
+score is based on the number of other papers citing it, and the score of those
+papers. The most simple form of this captured by the following equation:\\
 \begin{equation}
 \label{eqn:basic}
 S(p)= \Sigma_{c \in C} \frac{S(c)}{D(c)}
 \end{equation}
-where $p$ is the paper being scored, $C$ is the set of all papers that cite $p$, $S$ is the scoring function, and $D$ is the degree function (indicating the number of papers a certain paper cites).
+where $p$ is the paper being scored, $C$ is the set of all papers that cite
+$p$, $S$ is the scoring function, and $D$ is the degree function (indicating
+the number of papers a certain paper cites).
 
-The score of all nodes can be calculated in an iterative manner. All nodes can be initialized to a default score, such as 1. Then, in each round, Equation \ref{eqn:basic} can be applied to all nodes. This process is repeated until node scores converge. However, this scoring function is further complicated by a couple of features of academic paper relations: cycles and components. 
+The score of all nodes can be calculated in an iterative manner. All nodes can
+be initialized to a default score, such as 1. Then, in each round, Equation
+\ref{eqn:basic} can be applied to all nodes. This process is repeated until
+node scores converge. However, this scoring function is further complicated by
+a couple of features of academic paper relations, specifically those seen in the ACM data set: cycles and components.
 
-Citation cycles provide one source of complication. In citation cycles, a paper's chain of citations returns to the paper itself. A number of these cycles exist in the data set. In general, these cycles act as a score sink, shifting the score of external nodes into the cycle round after round. Inside the cycle, the score rotates among nodes, preventing convergence. To reduce the impact of these cycles, a score source is provided for node each round, as also done in PageRank. To provide convergence, the total sum of all node scores must remain constant, so node scores must be normalized per round. This results in an updated scoring function of:\\
+Citation cycles provide one source of complication. In general, these cycles act as a score sink, shifting the score of external nodes into the cycle round after round. Inside the cycle, the score rotates among nodes, preventing convergence. To reduce the impact of these cycles, a score source is provided for node each round, as also done in 
+. To provide convergence, the total sum of all node scores must remain constant, so node scores must be normalized per round. This results in an updated scoring function of:\\
 \begin{equation}
 \label{eqn:cycle}
 S(p)= n(\Sigma_{c \in C} \frac{S(c)}{D(c)}+E(p))
 \end{equation}
-where $E$ is a source of score, $n$ is the normalization factor, and all other variables remain as defined.
+where $E$ is a source of score, $n$ is the normalization factor, and all other
+variables remain as defined.
 
+Components in the citation graph are the other source of complication. Small components are papers
+that don't cite many or any other papers in the data set and aren't heavily
+cited. This implies that nodes in small components should not be highly ranked. To adjust for this, nodes are categorized into the components they belong in.
+Instead of initializing node scores to be a constant value such as 1, they are
+instead initialized to a score linear to the size of the component containing
+the nodes. Intuitively, this means that papers in larger components will
+receive higher scores, as desired.
 
-
-\begin{figure}[t]
-\centering
-	\includegraphics[width=5in]{images/component-graph}
-	\caption{Sizes of components in the ACM data set and the number of each size's occurrence.}	
-	\label{comp-size}
-\end{figure}
-
-Components in the citation graph are the other source of complication. Papers in the same component are either both part of the same citation chain or share a common ancestor or descendant in their respective chain. The ACM data exhibits 45,571 total components, with one large component of 176,285 papers, and a large number of smaller components ranging in size from one to ten papers, as displayed in Figure \ref{comp-size}. Small components are papers that don't cite many or any other papers in the data set and aren't heavily cited. This implies that nodes in small components should not be highly ranked. 
-
-To adjust for this, nodes are categorized into the components they belong in. Instead of initializing node scores to be a constant value such as 1, they are instead initialized to a score linear to the size of the component containing the nodes. Intuitively, this means that papers in larger components will receive higher scores, as desired.
-
-A final variation on the basic scoring function is the incorporation of a damping factor $d$. A user following a citation chain will eventually stop, possibly at the end of the chain. Intuitively, the farther down a chain a user traverses, the less likely the papers will relevant and important to the original query, and the more likely the user will stop. The damping factor models this behaviour by reducing the change produced by the scoring function as the number of rounds increases. Adapted from PageRank, this results in the final version of our scoring function:\\
+A final variation on the basic scoring function is the incorporation of a
+damping factor $d$. A user following a citation chain will eventually stop,
+possibly at the end of the chain. Intuitively, the farther down a chain a user
+traverses, the less likely the papers will relevant and important to the
+original query, and the more likely the user will stop. The damping factor
+models this behavior by reducing the change produced by the scoring function
+as the number of rounds increases. Adapted from PageRank, this results in the
+final version of our scoring function:\\
 \begin{equation}
 \label{eqn:damping}
 S(p)= n(\frac{1-d}{N}+d(\Sigma_{c \in C} \frac{S(c)}{D(c)}+E(p)))
 \end{equation}
-where $d$ is the damping factor, $N$ is the total number of papers/nodes in the network, and all other variables remain as defined.
+where $d$ is the damping factor, $N$ is the total number of papers/nodes in the
+network, and all other variables remain as defined.
 
 \section{Implementation}
 \label{sec:implementation}
-\subsection{Overview}
-PubCrawl is an online search website built with the Django web framework backed by a Postgres database and Lucene search index. While the Postgres database stores metadata about papers such as the citation graph, author and venue information, Lucene stores indexes for paper titles, abstracts and fulltext. The PubCrawl interface allows users to submit search terms and relative weights to be assigned to title, abstract, full text searches and pagerank. Figure \ref{interface} shows a screenshot of the interface.
+
+%\subsection{Overview}
+PubCrawl is an online search website built with the Django web framework backed by a Postgres database and Lucene search index. While the Postgres database stores metadata about papers such as the citation graph, author and venue information, Lucene stores indexes for paper titles, abstracts and fulltext. The PubCrawl interface allows users to submit search terms and relative weights to be assigned to title, abstract, full text searches and PageRank. Figure \ref{interface} shows a screenshot of the interface.
 
 \begin{figure}[t]
 \centering
@@ -118,23 +215,13 @@ For PubCrawl's implementation of the adapted PageRank scoring function, we used 
 
 \item For initializing node scores, we use a linear relationship with the size of the component containing the node. If the total number of papers (and nodes) is $N$ and paper $p$ is in a component with $X$ nodes, then the initial score for $p$ is set to $\frac{X}{N}$. Thus, larger components start with initially higher scores, and typically converge with higher final scores.
 
-\item For the damping factor of our final scoring function (Equation \ref{eqn:damping}), we use $d=0.85$. This is a reflection of the PageRank study indicating this value as reasonable, rather than a precisely chosen one.
+\item For the damping factor of our final scoring function (Equation \ref{eqn:damping}), we use $d=0.85$. This is a reflection of the PageRank study \cite{page99} indicating this value as reasonable, rather than a precisely chosen one.
 
 \end{itemize} 
 
 \section{User Study}
 
 To evaluate the quality of PubCrawl results, we performed a preliminary user study. In this study, we compared the quality of PubCrawl results with those from Google Scholar, Microsoft Academic Search, ACM Digital Library and CiteSeer.
-
-\subsection{Methodology}
-
-For 4 topics, we performed searches on Google Scholar, Microsoft Academic Search, ACM Digital Library, CiteSeer and PubCrawl. We then obtained lists of the top 10 ACM publication results from these search engines. We provided these lists to our experts who rated each of the 10 results as Highly Relevant, Moderately Relevant or Not relevant. They also ranked the five lists in order of decreasing quality. Figure \ref{relevance1} shows the distribution of results grouped by ranks assigned by users. We observe that PubCrawl produces a large number of moderately relevant document while it has a low number of highly and not relevant results. While we would ideally like to maximize the former, the low number of non-relevant results is very important since it means that we have low false positive rate. 
-
-Figures \ref{relevance2} and \ref{relevance3} show two different views of these data. The first plots the relevance ratio across all search engines. Relevance ratio is computed as (\# Highly Relevant + \# Moderately Relevant)/(\#Not Relevant). As we can see, PubCrawl has relevance ratio comparable to Google Scholar and Microsoft Academic Search. CiteSeer, on the other hand, has very poor relevance score since it produces a large number of non-relevant results. ACM Digital Library has the largest number of relevant documents in its results.
-
-In Figure \ref{relevance3}, we show a total quality score we define as follows: Quality Score = \# Highly Relevant Results - \# Non-relevant results + 0.1 * \# Moderately relevant results. We choose this metric to highly rank relevant results, penalize for non-relevant results and factor in moderately relevant results. 
-
-Finally, in Figure \ref{rank1}, we show the average rank assigned to an engine based on the ranks assigned to each engine by our experts. A higher score (scale of 5) indicates a better rank. On average, PubCrawl ranked as high as the other engines except Google Scholar.
 
 \begin{figure}[t]
 \centering
@@ -143,6 +230,12 @@ Finally, in Figure \ref{rank1}, we show the average rank assigned to an engine b
 	\label{relevance1}
 \end{figure}
 
+\subsection{Methodology}
+
+For 4 topics, we performed searches on Google Scholar, Microsoft Academic Search, ACM Digital Library, CiteSeer and PubCrawl. We then obtained lists of the top 10 ACM publication results from these search engines. We provided these lists to our experts who rated each of the 10 results as Highly Relevant, Moderately Relevant or Not relevant. They also ranked the five lists in order of decreasing quality. Figure \ref{relevance1} shows the distribution of results grouped by ranks assigned by users. We observe that PubCrawl produces a large number of moderately relevant document while it has a low number of highly and not relevant results. While we would ideally like to maximize the former, the low number of non-relevant results is very important since it means that we have low false positive rate. 
+
+\newpage
+
 \begin{figure}[t]
 \centering
 	\includegraphics[width=5in]{images/Relevance2}
@@ -150,14 +243,22 @@ Finally, in Figure \ref{rank1}, we show the average rank assigned to an engine b
 	\label{relevance2}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
 \centering
 	\includegraphics[width=5in]{images/Relevance3}
 	\caption{Quality Score.}	
 	\label{relevance3}
 \end{figure}
 
-\begin{figure}[t]
+\newpage
+
+Figures \ref{relevance2} and \ref{relevance3} show two different views of these data. The first plots the relevance ratio across all search engines. Relevance ratio is computed as (\# Highly Relevant + \# Moderately Relevant)/(\#Not Relevant). As we can see, PubCrawl has relevance ratio comparable to Google Scholar and Microsoft Academic Search. CiteSeer, on the other hand, has very poor relevance score since it produces a large number of non-relevant results. ACM Digital Library has the largest number of relevant documents in its results.
+
+In Figure \ref{relevance3}, we show a total quality score we define as follows: Quality Score = \# Highly Relevant Results - \# Non-relevant results + 0.1 * \# Moderately relevant results. We choose this metric to highly rank relevant results, penalize for non-relevant results and factor in moderately relevant results. 
+
+Finally, in Figure \ref{rank1}, we show the average rank assigned to an engine based on the ranks assigned to each engine by our experts. A higher score (scale of 5) indicates a better rank. On average, PubCrawl ranked as high as the other engines except Google Scholar.
+
+\begin{figure}[!h]
 \centering
 	\includegraphics[width=5in]{images/rank}
 	\caption{Rank order of search engines (Higher score indicates better rank; scale of 5).}	
@@ -177,7 +278,10 @@ In this work, we built a publication search engine based on the PageRank algorit
 Several extensions of this work are possible. An extremely challenging question we would like to answer is what is the best way to determine appropriate weights in a ranking function. Using labelled data points and curve fitting or SVMs, we are likely to get a better set of results. We would also like to investigate the following heuristics further: it would also be interesting to extend page rank so that it takes into account relationships between papers, i.e. paper A supports paper B, paper A refutes paper B etc. Similarly we would like to use metadata such as paper venues in order to further refine the scoring. We also looked into whether we could classify papers based on the level of expertise a paper expects. This may also be used to boost our search results.
 
 
-\section{Acknowledgements}
-\null
+\section{Acknowledgments}
+We'd like to thank Samuel Madden, Adam Marcus, and Eugene Wu for their help during this project. They provided insightful observations and guidance throughout.
+
+\bibliography{refs}{}
+\bibliographystyle{acm}
 
 \end{document}
