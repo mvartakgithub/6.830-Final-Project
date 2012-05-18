@@ -216,17 +216,18 @@ score of unseen tuples is less than the score of the $k$th hit.
 To evaluate the quality of PubCrawl results, we performed a preliminary user
 study comparing the quality of PubCrawl results with those from Google Scholar,
 Microsoft Academic Search, ACM Digital Library and \citeseer. We obtained
-information about important papers on 6 topics from experts in the respective
-areas. We then manually picked weights shown in Table \ref{weights} that gave
-good results for all 6 topics.
+information from experts about important papers on 6 topics: Provenance, stream
+processing, Twitter, crowdsourcing, parallel databases, and NoSQL. We then
+manually picked weights shown in Table \ref{weights} that gave good results for
+all 6 topics.
 
-\begin{table}[bt]
+\begin{table}[p]
   \begin{center}
     \begin{tabular}{ll}
       Parameter & Weight\\
       \hline
       Title & 0.1\\
-      Abstract & 0\\
+      Abstract & 0.01\\
       Document & 0.5\\
       PageRank & 1\\
     \end{tabular}
@@ -235,50 +236,55 @@ good results for all 6 topics.
   \label{weights}
 \end{table}
 
-For 4 topics, we performed searches on the engines, generating lists of the top
-10 ACM publications from each. We provided these lists to our experts who rated
+For the user study, we threw out Provenance and NoSQL from the topics list.
+Provenance did not have enough papers in the ACM data set; NoSQL is not a
+commonly used term even in papers about such systems. For the remaining topics,
+we performed searches on each of the engines, generating lists of the top 10
+ACM publications from each. We provided these lists to our experts who rated
 each of the 10 results as Highly Relevant, Moderately Relevant or Not relevant.
-They also ranked the five lists in order of decreasing quality. 
+They also ranked the five lists in order of decreasing quality.
 
 \subsection{Results}
 
-Figure \ref{relevance1} shows the distribution of results grouped by ranks
-assigned by users. PubCrawl produces a large number of moderately relevant
-document but a low number both of highly relevant and not relevant results.
-While we would ideally like to maximize the former, the low number of
-irrelevant results suggests are method has a lower false positive rate.
+Table \ref{ratios} shows the distribution of relevance of results for each
+search engine. Relevant results include both moderately and highly relevant
+results. PubCrawl produces a comparable number of relevant documents to the
+other search engines. We note \citeseer\ produces a large fraction of
+irrelevant documents, which we suspect is due to its noisy data set.
 
-Figure \ref{relevance2} shows the relevance ratio across all search engines.
-Relevance ratio is defined as $(H + M) / N$, where $H$ is the number of Highly
-Relevant results, $M$ is the number of Moderately Relevant results, and $N$ is
-the number of Not relevant results. PubCrawl has relevance ratio comparable to
-Google Scholar and Microsoft Academic Search. \citeseer, on the other hand, has
-very poor relevance score since it produces a large number of irrelevant
-results. ACM Digital Library has the largest number of relevant documents in
-its results.
+However, PubCrawl produces a relatively low number of highly relevant results.
+We believe there are several reasons this is the case. First, our citation
+graph does not include non-ACM papers. This means relevant papers may not
+necessarily have high PageRank in our system. Second, our Lucene text index
+does not index $n$-grams, which reduces the quality of results for multiword
+queries. Third, the Lucene scoring function based on VSM has been superseded by
+other information retrieval metrics.
 
-In Figure \ref{relevance3}, we show a total quality score which we define as $H
-- N + .1 M$. We choose this metric to highly rank relevant results, penalize
-for non-relevant results and factor in moderately relevant results.
+Figure \ref{relevance3} shows a quality score for each search engine, defined
+as $H - N + .1 M$, where $H$ is the number of Highly Relevant papers, $M$ is
+the number of Moderately Relevant papers, and $N$ is the number of Not Relevant
+papers.
 
-Finally, in Figure \ref{rank1}, we show the average rank assigned to an engine
-based on the ranks assigned to each engine by our experts. A higher score
-(scale of 5) indicates a better rank. On average, PubCrawl ranked as high as
-the other engines except Google Scholar.
+Figure \ref{rank1} shows the average rank assigned to an engine based on the
+ranks assigned to each engine by our experts. A higher score (scale of 5)
+indicates a better rank. On average, PubCrawl ranked as high as the other
+engines except Google Scholar.
 
-\begin{figure}[p]
-\centering
-\includegraphics[width=5in]{images/Relevance1}
-\caption{Relevance of search results across all topics}
-\label{relevance1}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=5in]{images/Relevance2}
-\caption{Relevance ratio for each search engine}
-\label{relevance2}
-\end{figure}
+\begin{table}[p]
+  \begin{center}
+    \begin{tabular}{llll}
+      Search Engine & Relevant & Highly Relevant & Not Relevant\\
+      \hline
+      Google Scholar & 0.9 & 0.45 & 0.1 \\
+      Microsoft Academic Search & 0.875 & 0.275 & 0.125 \\
+      \citeseer & 0.6 & 0.125 & 0.4 \\
+      ACM Digital Library & 0.975 & 0.125 & 0.025 \\
+      PubCrawl & 0.95 & 0.1 & 0.075 \\
+    \end{tabular}
+  \end{center}
+  \caption{Ratio of results in each relevance category by search engine}
+  \label{ratios}
+\end{table}
 
 \begin{figure}[p]
 \centering
@@ -294,12 +300,10 @@ the other engines except Google Scholar.
 \label{rank1}
 \end{figure}
 
-\subsection{Discussion}
-
 Our preliminary user study only involved 4 topics and hence a larger study must
 be undertaken to rigorously study the quality of results. We also observed
 that: (1) quality of results depends heavily on the breadth of the search term
-(a narrow search term produces better results), (2) ground truth wasn't always
+(a narrow search term produces better results), (2) ground truth was not always
 clearly known, (3) ground-truth is subjective, (4) we had to discard a large
 number of highly relevant but non-ACM publications. Furthermore, because we did
 not have data for non-ACM papers citing ACM papers, our PageRank algorithm was
