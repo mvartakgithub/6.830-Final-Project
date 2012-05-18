@@ -1,4 +1,5 @@
 \documentclass[12pt]{article}
+\usepackage{hyperref}
 \setcounter{secnumdepth}{2} 
 \title{PubCrawl: A Publication Search Engine}
 \author{Frank Li (frankli@mit.edu) \\
@@ -25,9 +26,11 @@ papers. Academic papers are highly structured, lending additional weight to
 matches which appear in important sections such as the title or abstract.
 Contextual information changes the weight which should be contributed to cited
 papers. Here we describe PubCrawl, a search engine built for the ACM Digital
-Library. The system allows users to weight the relative importance of matches
-in various sections of the documents. We also implement a version of PageRank
-over the dataset. We evaluate the system in user studies.
+Library available at \url{http://saw.csail.mit.edu:9000}. The system allows
+users to weight the relative importance of matches in various sections of the
+documents. We also implement a version of PageRank over the dataset. We
+evaluate the system in user studies and find it produces comparable results to
+other search engines.
 \end{abstract}
 
 \section{Introduction}
@@ -64,14 +67,15 @@ features, and shows the same weakness to ranking optimization as Scholar.
 
 \subsection{Overview}
 
-PubCrawl is an online search website for the ACM Digital Library built with the
-Django web framework. It is backed by a Postgres database which stores metadata
-(authors, venues, and citations) and a Lucene search index. The PubCrawl
-interface allows users to submit search terms and assign relative weights to
-title, abstract, and full text searches and PageRank. Figure \ref{interface}
-shows a screenshot of the interface.
+Here, we present PubCrawl, a new search engine for the ACM Digital Library
+available at \url{http://saw.csail.mit.edu:9000}. The PubCrawl interface allows
+users to submit search terms and assign relative weights to title, abstract,
+and full text searches and PageRank. It uses the Django web framework for the
+front-end interface and is backed by a Postgres database which stores metadata
+(authors, venues, and citations) and a Lucene search index. Figure
+\ref{interface} shows a screenshot of the interface.
 
-\begin{figure}[bt]
+\begin{figure}[p]
   \begin{center}
     \includegraphics[width=\textwidth]{images/interface}
   \end{center}
