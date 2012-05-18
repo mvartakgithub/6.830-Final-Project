@@ -96,19 +96,19 @@ PubCrawl is an online search website built with the Django web framework backed 
 \end{figure}
 
 \subsection{Scores and Scaling}
-PubCrawl combines four scores in all - a fulltext search score, a title search score, an abstract search score and the PageRank score. Since Lucene does't score on a pre-defined scale, we normalize all Lucene. Similarly, we normalize PageRanks. We normalize all scores on a per-query basis. This is particularly relevant to PageRank since results for a particular topic may all have low PageRank since the topic is studied by few researchers. By normalizing per-query, we do not penalize topics with a small number of papers.
+PubCrawl combines four scores in all - a fulltext search score, a title search score, an abstract search score and the PageRank score. Since Lucene does't score on a pre-defined scale, we normalize all Lucene scores. Similarly, we normalize PageRanks too. All scores are scaled on a per-query basis instead of a per-corpus basis. This is particularly relevant to PageRank since results for a particular topic may all have low PageRank since the topic is studied by few researchers. By normalizing per-query, we do not penalize topics with a small number of papers.
 
 \subsection{Ranking}
 An important challenge faced by PubCrawl is how to effectively combine the four scores above to get an over quality score for a document. We implemented two types of simple ranking functions for this purpose:
 
 \begin{itemize}
 	\item 2-factor ranking: As a first step, we only allowed full text and page rank scores to be combined. We used a simple sorting technique for this since every document returned by the search has an associated full text and page rank score.
-	\item 4-factor ranking: In order to combine multiple scores, i.e., to combine multiple sorted lists, we used the RankJoin algorithm. Briefly, RankJoin is a top-k algorithm that takes multiple sorted lists and traverses them in a round-robin fashion performing hash joins on already seen tuples. It is able to stop before traversing all tuples because once the max possible score of unseen tuples becomes lesser than the minimum score of the top-k tuples, we are guaranteed to have the required top-k set of tuples. We implemented a slight variation of RankJoin since we don't need joins across all 4 lists.
+	\item 4-factor ranking: In order to combine multiple scores, i.e., to combine multiple sorted lists, we used the RankJoin algorithm \cite{DBLP:conf/vldb/IlyasAE03}. Briefly, RankJoin is a top-k algorithm that takes multiple sorted lists and traverses them in a round-robin fashion performing hash joins on already seen tuples. It is able to stop before traversing all tuples because once the max possible score of unseen tuples becomes lesser than the minimum score of the top-k tuples, we are guaranteed to have the required top-k set of tuples. We implemented a slight variation of RankJoin since we don't need joins across all 4 lists.
 \end{itemize}
 
 \subsection{Tuning Parameters}
 
-To tune weights for the four factors, we obtained information about seminal papers on 6 topics from experts in the respective areas. We then manually picked weights that gave good results for all 6 topics.
+To tune weights for the four factors, we obtained information about seminal papers on 6 topics from experts in the respective areas. We then manually picked weights that gave good results for all 6 topics. The settings we used for the user study were:  title weight (0.1), abstract weight (0), document weight (0.5), page rank (1).
 
 \subsection{PageRank Parameters}
 For PubCrawl's implementation of the adapted PageRank scoring function, we used several parameters for variables defined in Section \ref{sec:pagerank}:\\
@@ -130,7 +130,7 @@ To evaluate the quality of PubCrawl results, we performed a preliminary user stu
 
 For 4 topics, we performed searches on Google Scholar, Microsoft Academic Search, ACM Digital Library, CiteSeer and PubCrawl. We then obtained lists of the top 10 ACM publication results from these search engines. We provided these lists to our experts who rated each of the 10 results as Highly Relevant, Moderately Relevant or Not relevant. They also ranked the five lists in order of decreasing quality. Figure \ref{relevance1} shows the distribution of results grouped by ranks assigned by users. We observe that PubCrawl produces a large number of moderately relevant document while it has a low number of highly and not relevant results. While we would ideally like to maximize the former, the low number of non-relevant results is very important since it means that we have low false positive rate. 
 
-Figures \ref{relevance2} and \ref{reelvance3} show two different views of these data. The first plots the relevance ratio across all search engines. Relevance ratio is computed as (\# Highly Relevant + \# Moderately Relevant)/(\#Not Relevant). As we can see, PubCrawl has relevance ratio comparable to Google Scholar and Microsoft Academic Search. CiteSeer, on the other hand, has very poor relevance score since it produces a large number of non-relevant results. ACM Digital Library has the largest number of relevant documents in its results.
+Figures \ref{relevance2} and \ref{relevance3} show two different views of these data. The first plots the relevance ratio across all search engines. Relevance ratio is computed as (\# Highly Relevant + \# Moderately Relevant)/(\#Not Relevant). As we can see, PubCrawl has relevance ratio comparable to Google Scholar and Microsoft Academic Search. CiteSeer, on the other hand, has very poor relevance score since it produces a large number of non-relevant results. ACM Digital Library has the largest number of relevant documents in its results.
 
 In Figure \ref{relevance3}, we show a total quality score we define as follows: Quality Score = \# Highly Relevant Results - \# Non-relevant results + 0.1 * \# Moderately relevant results. We choose this metric to highly rank relevant results, penalize for non-relevant results and factor in moderately relevant results. 
 
@@ -164,18 +164,15 @@ Finally, in Figure \ref{rank1}, we show the average rank assigned to an engine b
 	\label{rank1}
 \end{figure}
 
-\subsection{Challenges}
-The main challenges with evaluating the user study were (1) Ground truth wasn't always clearly known, (2) Ground-truth is subjective, (3) since the data only included ACM papers, we had to discard a large number of highly relevant but non-ACM publications.
+\subsection{Discussion}
+Our preliminary user study only involved 4 topics and hence a larger study must be undertaken to rigorously study the quality of results. We also observed that: (1) quality of results depends heavily on the breadth of the search term (a narrow search term produces better results), (2) ground truth wasn't always clearly known, (3) ground-truth is subjective, (4) since the data only included ACM papers, we had to discard a large number of highly relevant but non-ACM publications. Furthermore, the lack of non-ACM paper citations causes discrepancies in our PageRank algorithm compared to other search engines.
 
-\section{Results}
+However, our preliminary user study shows that PubCrawl can find relevant documents and effectively tradeoff PageRank and text indexing scores.
 
-User study results.
-
-Some time comparisons.
 
 \section{Conclusion and Future Work}
 
-We observed that it is very difficult to find a scoring function that works well for all search queries. We also realized that combining scores from orthogonal metrics like PageRank and text indexing may not be the best method to obtain an overall ranking.
+In this work, we built a publication search engine based on the PageRank algorithm and the Lucene text index. We adapted PageRank for the specific properties of the citation graph and indexed various paper attributes such as title, abstract and full text. We then explored multiple ways of combining the text indexing scores with PageRank. We observed that it is very difficult to find a scoring function that works well for all search queries. We also realized that combining scores from orthogonal metrics like PageRank and text indexing may not be the best method to obtain an overall ranking. Our user study demonstrates that PubCrawl has a low false positive rate and produces a large number of moderately relevant results. However, it produces a low number of highly relevant results and there is potential to extend this work by finding better ranking functions.
 
 Several extensions of this work are possible. An extremely challenging question we would like to answer is what is the best way to determine appropriate weights in a ranking function. Using labelled data points and curve fitting or SVMs, we are likely to get a better set of results. We would also like to investigate the following heuristics further: it would also be interesting to extend page rank so that it takes into account relationships between papers, i.e. paper A supports paper B, paper A refutes paper B etc. Similarly we would like to use metadata such as paper venues in order to further refine the scoring. We also looked into whether we could classify papers based on the level of expertise a paper expects. This may also be used to boost our search results.
 
